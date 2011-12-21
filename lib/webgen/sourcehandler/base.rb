@@ -143,25 +143,60 @@ module Webgen::SourceHandler
       # from the path's meta information hash) defines how the output name should be built (more
       # information about this in the user documentation).
       def standard_output_path(parent, path, use_lang_part, style = path.meta_info['output_path_style'])
-        result = style.collect do |part|
-          case part
-          when String  then part
-          when :lang   then use_lang_part ? path.meta_info['lang'] : ''
-          when :ext    then path.ext.empty? ? '' : '.' + path.ext
-          when :parent then temp = parent; temp = temp.parent while temp.is_fragment?; temp.path
-          when :year, :month, :day
-            ctime = path.meta_info['created_at']
-            if !ctime.kind_of?(Time)
-              raise Webgen::NodeCreationError.new("Invalid meta info 'created_at', needed because of used output path style",
-                                                  self.class.name, path)
-            end
-            ctime.send(part).to_s.rjust(2, '0')
-          when Symbol  then path.send(part)
-          when Array   then part.include?(:lang) && !use_lang_part ? '' : standard_output_path(parent, path, use_lang_part, part)
-          else ''
-          end
+        parent = parent.parent while parent.is_fragment?
+        
+        ctime_parts = {}
+        ctime = path.meta_info['created_at']
+        if ctime.kind_of?(Time)
+          ctime_parts[:year]  = ctime.year.to_s.rjust(4, '0')
+          ctime_parts[:month] = ctime.month.to_s.rjust(2, '0')
+          ctime_parts[:day]   = ctime.day.to_s.rjust(2, '0')
         end
-        result.join('')
+
+        output_path_fragment(style, path, ctime_parts.merge(
+          :lang   => use_lang_part ? path.meta_info['lang'] : '',
+          :ext    => path.ext.empty? ? '' : '.' + path.ext,
+          :parent => parent.path))
+      end
+      
+      def output_path_fragment(part, path, specials = {})
+        case part
+          when String  then part
+          when Symbol  then
+            if specials[part]
+              specials[part]
+            elsif part.to_s[0..0] == "_"
+              path.meta_info[part.to_s[1..-1]]
+            else
+              path.send(part)
+            end
+          when Array   then
+            res = part.map { |p| output_path_fragment(p, path, specials) }
+            res.join('')
+          when Hash    then
+            if not part['if'].nil? then
+              cond = output_path_fragment(part['if'], path, specials)
+            elsif not part['ifnot'].nil? then
+              cond = output_path_fragment(part['ifnot'], path, specials) ? false : true
+            elsif not part['ifeq'].nil? then
+              cond = part['ifeq'].map { |p| output_path_fragment(p, path, specials) }
+              cond = cond[0] == cond[1]
+            elsif not part['ifne'].nil? then
+              cond = part['ifne'].map { |p| output_path_fragment(p, path, specials) }
+              cond = cond[0] != cond[1]
+            else
+              cond = nil
+            end
+            if cond.nil?
+              ''
+            elsif cond
+              output_path_fragment(part['then'], path, specials)
+            else
+              output_path_fragment(part['else'], path, specials)
+            end
+          else
+            ''
+        end
       end
 
     end

@@ -157,7 +157,6 @@ module Webgen::SourceHandler
           :lang   => use_lang_part ? path.meta_info['lang'] : '',
           :ext    => path.ext.empty? ? '' : '.' + path.ext,
           :parent => parent.path))
-        warn result
         result
       end
       
@@ -176,7 +175,6 @@ module Webgen::SourceHandler
             res = part.map { |p| output_path_fragment(p, path, specials) }
             res.join('')
           when Hash    then
-            warn part.inspect
             cond = nil
             if not part['if'].nil? then
               cond = output_path_fragment(part['if'], path, specials)

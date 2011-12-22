@@ -16,6 +16,8 @@ module Webgen
     autoload :Copy, 'webgen/sourcehandler/copy'
     autoload :Directory, 'webgen/sourcehandler/directory'
     autoload :Metainfo, 'webgen/sourcehandler/metainfo'
+    autoload :Tags, 'webgen/sourcehandler/tags'
+    autoload :Index, 'webgen/sourcehandler/index'
     autoload :Template, 'webgen/sourcehandler/template'
     autoload :Page, 'webgen/sourcehandler/page'
     autoload :Fragment, 'webgen/sourcehandler/fragment'

@@ -50,6 +50,8 @@ config.sourcehandler.patterns({
                                 'Webgen::SourceHandler::Copy' => ['**/*.css', '**/*.js', '**/*.html', '**/*.gif', '**/*.jpg', '**/*.png', '**/*.ico'],
                                 'Webgen::SourceHandler::Directory' => ['**/'],
                                 'Webgen::SourceHandler::Metainfo' => ['**/metainfo', '**/*.metainfo'],
+                                'Webgen::SourceHandler::Tags' => ['**/*.tags'],
+                                'Webgen::SourceHandler::Index' => ['**/*.index'],
                                 'Webgen::SourceHandler::Template' => ['**/*.template'],
                                 'Webgen::SourceHandler::Page' => ['**/*.page'],
                                 'Webgen::SourceHandler::Virtual' => ['**/virtual', '**/*.virtual'],
@@ -59,7 +61,8 @@ config.sourcehandler.patterns({
 config.sourcehandler.invoke({
                               1 => ['Webgen::SourceHandler::Directory', 'Webgen::SourceHandler::Metainfo'],
                               5 => ['Webgen::SourceHandler::Copy', 'Webgen::SourceHandler::Template',
-                                    'Webgen::SourceHandler::Page', 'Webgen::SourceHandler::Feed',
+                                    'Webgen::SourceHandler::Page', 'Webgen::SourceHandler::Tags',
+                                    'Webgen::SourceHandler::Index', 'Webgen::SourceHandler::Feed',
                                     'Webgen::SourceHandler::Sitemap'],
                               9 => ['Webgen::SourceHandler::Virtual']
                             }, :doc => 'All source handlers listed here are used by webgen and invoked according to their priority setting')

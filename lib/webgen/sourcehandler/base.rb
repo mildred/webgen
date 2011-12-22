@@ -153,10 +153,12 @@ module Webgen::SourceHandler
           ctime_parts[:day]   = ctime.day.to_s.rjust(2, '0')
         end
 
-        output_path_fragment(style, path, ctime_parts.merge(
+        result = output_path_fragment(style, path, ctime_parts.merge(
           :lang   => use_lang_part ? path.meta_info['lang'] : '',
           :ext    => path.ext.empty? ? '' : '.' + path.ext,
           :parent => parent.path))
+        warn result
+        result
       end
       
       def output_path_fragment(part, path, specials = {})
@@ -174,6 +176,8 @@ module Webgen::SourceHandler
             res = part.map { |p| output_path_fragment(p, path, specials) }
             res.join('')
           when Hash    then
+            warn part.inspect
+            cond = nil
             if not part['if'].nil? then
               cond = output_path_fragment(part['if'], path, specials)
             elsif not part['ifnot'].nil? then
@@ -184,15 +188,26 @@ module Webgen::SourceHandler
             elsif not part['ifne'].nil? then
               cond = part['ifne'].map { |p| output_path_fragment(p, path, specials) }
               cond = cond[0] != cond[1]
-            else
-              cond = nil
             end
-            if cond.nil?
-              ''
-            elsif cond
-              output_path_fragment(part['then'], path, specials)
+            if not cond.nil?
+              if cond
+                output_path_fragment(part['then'], path, specials)
+              else
+                output_path_fragment(part['else'], path, specials)
+              end
+            elsif not part['regexp'].nil?
+              subject = output_path_fragment(part['subject'], path, specials) || ''
+              regexp  = output_path_fragment(part['regexp'], path, specials)
+              replace = output_path_fragment(part['replace'], path, specials) || ''
+              regexp = Regexp.new(regexp)
+              subject.gsub(regexp, replace)
+            elsif not part['pattern'].nil?
+              subject = output_path_fragment(part['subject'], path, specials)
+              pattern = output_path_fragment(part['pattern'], path, specials)
+              replace = output_path_fragment(part['replace'], path, specials) || ''
+              subject.gsub(pattern, replace)
             else
-              output_path_fragment(part['else'], path, specials)
+              ''
             end
           else
             ''

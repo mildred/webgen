@@ -13,7 +13,7 @@ module Webgen::ContentProcessor
 
       locals = {:context => context}
       context.content = ::Haml::Engine.new(context.content, :filename => context.ref_node.alcn).
-        render(Object.new, locals)
+        render(Webgen::ContentProcessor::Context.new(context), locals)
       context
     rescue LoadError
       raise Webgen::LoadError.new('haml', self.class.name, context.dest_node, 'haml')

@@ -67,6 +67,7 @@ module Webgen::SourceHandler
       nodes << super(path, :parent => parent) do |node|
         node.node_info[:config]    = data
         node.node_info[:sub_nodes] = index_nodes
+        node.node_info[:page]      = page
       end
 
       # Create page nodes
@@ -76,12 +77,15 @@ module Webgen::SourceHandler
         #p = Webgen::Path.new("#{parent_path}#{basename}", path.source_path)
         #p.meta_info = path.meta_info
         path.ext = basename
-        warn "#{path} --> #{parent_path}#{basename}"
-        nodes << super(path, :parent => parent, :output_path => "#{parent_path}#{basename}") do |node|
+        outpath = "#{parent_path}#{basename}"
+        outpath = output_path(parent, path)
+        warn "#{path} --> #{outpath}"
+        nodes << super(path, :parent => parent, :output_path => outpath) do |node|
           warn node.inspect
           node.node_info[:config]    = data
-          node.node_info[:page]      = i
+          node.node_info[:page_num]  = page_start_at + i
           node.node_info[:sub_nodes] = pages[i]
+          node.node_info[:page]      = page
         end
       end
       
@@ -89,14 +93,12 @@ module Webgen::SourceHandler
     end
 
     def content(node)
-      warn "Index#content(#{node.inspect})"
-      node.node_info.inspect
-    end
-    
-    def output_path(parent, path)
-      res = super(parent, path)
-      warn "Index#output_path(#{parent}, #{path}) = #{res}"
-      res
+      chain = website.blackboard.invoke(:templates_for_node, node)
+      chain << node
+
+      node.node_info[:used_nodes] << chain.first.alcn
+      context = chain.first.node_info[:page].blocks["content"].render(Webgen::Context.new(:chain => chain))
+      context.content
     end
 
   end

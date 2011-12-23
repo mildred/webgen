@@ -56,7 +56,9 @@ module Webgen::ContentProcessor
       unless attrs[:render].nil?
         attrs[:chain] = [attrs[:render]] + @context[:chain][1..-1]
       end
-      if attrs[:chain].kind_of?(Array)
+      if attrs[:chain].kind_of?(Webgen::Node)
+        attrs[:chain] = [attrs[:chain]]
+      elsif attrs[:chain].kind_of?(Array)
         attrs[:chain].map! do |item|
           if item.kind_of? String
             temp_node = @context.ref_node.resolve(item, @context.dest_node.lang)

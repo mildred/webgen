@@ -89,10 +89,10 @@ config.sourcehandler.default_meta_info({
                                            'blocks' => {'default' => {'pipeline' => 'erb,tags,markdown,blocks,fragments'}}
                                          },
                                          'Webgen::SourceHandler::Tags' => {
-                                           'kind' => 'tags',
+                                           'kind' => 'tags'
                                          },
                                          'Webgen::SourceHandler::Index' => {
-                                           'kind' => 'index',
+                                           'kind' => 'index'
                                          },
                                          'Webgen::SourceHandler::Fragment' => {
                                            'kind' => 'fragment'

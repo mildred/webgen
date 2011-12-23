@@ -264,6 +264,7 @@ module Webgen
       def meta_info_changed?(node)
         path = node.node_info[:creation_path]
         old_mi = website.cache[:sourcehandler_path_mi][[path, node.node_info[:processor]]]
+        raise Exception.new("#{node.node_info[:processor]}: internal error, node #{path} not in cache") if old_mi.nil?
         old_mi.delete('modified_at')
         new_mi = default_meta_info(@paths[path] || Webgen::Path.new(path), node.node_info[:processor])
         new_mi.delete('modified_at')

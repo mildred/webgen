@@ -12,31 +12,91 @@ module Webgen::SourceHandler
     # Create the node for +path+. If the +path+ has the name of a content processor as the first
     # part in the extension, it is preprocessed.
     def create_node(path)
-      if path.ext.index('.')
-        processor, *rest = path.ext.split('.')
-        if website.blackboard.invoke(:content_processor_names).include?(processor)
-          path.ext = rest.join('.')
+      page = page_from_path(path)
+      data = YAML::load(page.blocks["content"].content) || {}
+      sub_nodes = []
+      
+      orders = {'newest-first' => :desc,
+                'oldest-first' => :asc,
+                'newest-last'  => :asc,
+                'oldest-last'  => :desc,
+                'asc'          => :asc,
+                'desc'         => :desc}
+      
+      kind_attribute = data['kind_attribute']         || 'kind'
+      act_on         = [data['act_on']].flatten       || []
+      act_on_all     = data['act_on_all']             || act_on.empty?
+      index_size     = data['index_size']             || 10
+      index_order    = data['index_order']            || 'newest-first'
+      index_order    = orders[index_order.downcase]   || :desc
+      archive_size   = data['archive_size']           || 10
+      archive_order  = data['archive_order']          || 'oldest-first'
+      archive_order  = orders[archive_order.downcase] || :asc
+      children_only  = data['children_only']          || true
+      sort_key       = data['sort_key']               || 'created_at'
+      page_basename  = data['page_basename']          || 'page_%d'
+      page_start_at  = data['page_start_at']          || 1
+      
+      parent = parent_node(path)
+      parent.tree.node_access[:alcn].values.each do |n|
+        next if children_only and not n.in_subtree_of?(parent)
+        next unless act_on_all or act_on.include?(n[kind_attribute])
+        sub_nodes << n
+      end
+      
+      sub_nodes.sort! do |a,b|
+        if a[sort_key].nil?
+          1
+        elsif b[sort_key].nil?
+          -1
         else
-          processor = nil
+          a[sort_key] <=> b[sort_key]
         end
       end
-      super(path) do |node|
-        node.node_info[:preprocessor] = processor
+      
+      sub_nodes = {:asc => sub_nodes, :desc => sub_nodes.reverse}
+      index_nodes = sub_nodes[index_order][0, index_size]
+      pages_nodes = sub_nodes[archive_order]
+      pages = []
+      until pages_nodes.empty?
+        pages << pages_nodes.slice!(0, archive_size)
       end
+      
+      # Create index node
+      nodes = []
+      nodes << super(path, :parent => parent) do |node|
+        node.node_info[:config]    = data
+        node.node_info[:sub_nodes] = index_nodes
+      end
+
+      # Create page nodes
+      parent_path = path.parent_path
+      pages.each_index do |i|
+        basename = page_basename % (page_start_at + i)
+        #p = Webgen::Path.new("#{parent_path}#{basename}", path.source_path)
+        #p.meta_info = path.meta_info
+        path.ext = basename
+        warn "#{path} --> #{parent_path}#{basename}"
+        nodes << super(path, :parent => parent, :output_path => "#{parent_path}#{basename}") do |node|
+          warn node.inspect
+          node.node_info[:config]    = data
+          node.node_info[:page]      = i
+          node.node_info[:sub_nodes] = pages[i]
+        end
+      end
+      
+      nodes
     end
 
-    # Return either the preprocessed content of the +node+ or the IO object for the node's source
-    # path depending on the node type.
     def content(node)
-      io = website.blackboard.invoke(:source_paths)[node.node_info[:src]].io
-      if node.node_info[:preprocessor]
-        is_binary = website.blackboard.invoke(:content_processor_binary?, node.node_info[:preprocessor])
-        context = Webgen::Context.new(:content => io.data(is_binary ? 'rb' : 'r'), :chain => [node])
-        website.blackboard.invoke(:content_processor, node.node_info[:preprocessor]).call(context)
-        context.content
-      else
-        io
-      end
+      warn "Index#content(#{node.inspect})"
+      node.node_info.inspect
+    end
+    
+    def output_path(parent, path)
+      res = super(parent, path)
+      warn "Index#output_path(#{parent}, #{path}) = #{res}"
+      res
     end
 
   end

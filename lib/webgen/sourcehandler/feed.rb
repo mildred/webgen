@@ -8,28 +8,29 @@ module Webgen::SourceHandler
     include Webgen::WebsiteAccess
     include Base
 
-    # The mandatory keys that need to be set in a feed file.
-    MANDATORY_INFOS = %W[site_url author entries]
-
     def initialize # :nodoc:
       website.blackboard.add_listener(:node_changed?, method(:node_changed?))
     end
 
     # Create atom and/or rss feed files from +path+.
-    def create_node(path)
+    def create_node(path, sub_nodes = nil, rewrite_ext = true)
       page = page_from_path(path)
       path.meta_info['link'] ||= path.parent_path
+      
+      site_url = path.meta_info['site_url'] || website.config['website.url']
 
-      if MANDATORY_INFOS.any? {|t| path.meta_info[t].nil?}
-        raise Webgen::NodeCreationError.new("At least one of #{MANDATORY_INFOS.join('/')} is missing",
+      if !path.meta_info['author'] || !site_url || (!sub_nodes && !path.meta_info['entries'])
+        raise Webgen::NodeCreationError.new("At least one of author/entries/site_url is missing",
                                             self.class.name, path)
       end
 
       create_feed_node = lambda do |type|
-        path.ext = type
+        path.ext = type if rewrite_ext
         super(path) do |node|
           node.node_info[:feed] = page
           node.node_info[:feed_type] = type
+          node.node_info[:site_url] = site_url
+          node.node_info[:sub_nodes] = sub_nodes
         end
       end
 
@@ -57,16 +58,25 @@ module Webgen::SourceHandler
     # Return the entries for the feed +node+.
     def feed_entries(node)
       nr_items = (node['number_of_entries'].to_i == 0 ? 10 : node['number_of_entries'].to_i)
-      patterns = [node['entries']].flatten.map {|pat| Webgen::Path.make_absolute(node.parent.alcn, pat)}
+      sub_nodes = node.node_info[:sub_nodes]
+      
+      unless sub_nodes
+        patterns = [node['entries']].flatten.map {|pat| Webgen::Path.make_absolute(node.parent.alcn, pat)}
+        sub_nodes = node.tree.node_access[:alcn].values.
+          select {|node| patterns.any? {|pat| node =~ pat} && node.node_info[:page]}
+      end
 
-      node.tree.node_access[:alcn].values.
-        select {|node| patterns.any? {|pat| node =~ pat} && node.node_info[:page]}.
-        sort {|a,b| a['modified_at'] <=> b['modified_at']}.reverse[0, nr_items]
+      sub_nodes.sort {|a,b| a['modified_at'] <=> b['modified_at']}.reverse[0, nr_items]
     end
 
     # Return the feed link URL for the feed +node+.
     def feed_link(node)
-      Webgen::Node.url(File.join(node['site_url'], node.tree[node['link']].path), false)
+      Webgen::Node.url(File.join(node.node_info[:site_url], node.tree[node['link']].path), false)
+    end
+
+    # Return the site_url feed +node+.
+    def site_url(node)
+      node.node_info[:site_url]
     end
 
     # Return the content of an +entry+ of the feed +node+.

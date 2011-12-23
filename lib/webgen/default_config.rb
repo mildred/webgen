@@ -7,6 +7,7 @@ config = website.config
 config.website.cache([:file, 'webgen.cache'], :doc => 'The file name (or String) from/to which the cache is read/written')
 config.website.lang('en', :doc => 'The default language used for the website')
 config.website.link_to_current_page(false, :doc => 'Specifies whether links to the current page should be used')
+config.website.url(false, :doc => 'Site URL, used by sitemap and feeds')
 
 # All things regarding logging
 config.logger.mask(nil, :doc => 'Only show logging events which match the regexp mask')

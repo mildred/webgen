@@ -10,11 +10,11 @@ module Webgen::ContentProcessor
     # Process the Ruby statements embedded in the content of +context+.
     def call(context)
       require 'erb'
-      extend(ERB::Util)
 
       erb = ERB.new(context.content)
       erb.filename = context.ref_node.alcn
-      context.content = erb.result(Webgen::ContentProcessor::Context.new(context).get_binding)
+      context.content = erb.result(Webgen::ContentProcessor::Context.new(context).get_erb_binding)
+      #context.content = erb.result(binding)
       context
     rescue Exception => e
       raise Webgen::RenderError.new(e, self.class.name, context.dest_node,

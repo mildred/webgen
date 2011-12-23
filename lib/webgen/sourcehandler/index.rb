@@ -13,30 +13,24 @@ module Webgen::SourceHandler
     # part in the extension, it is preprocessed.
     def create_node(path)
       page = page_from_path(path)
-      data = YAML::load(page.blocks["content"].content) || {}
+      data = YAML::load(page.blocks["content"].content)
+      cfg = get_config(data)
+
+      kind_attribute = cfg[:kind_attribute]
+      act_on         = cfg[:act_on]
+      act_on_all     = cfg[:act_on_all]
+      index_size     = cfg[:index_size]
+      index_order    = cfg[:index_order]
+      archive_size   = cfg[:archive_size]
+      archive_order  = cfg[:archive_order]
+      children_only  = cfg[:children_only]
+      sort_key       = cfg[:sort_key]
+      page_basename  = cfg[:page_basename]
+      page_start_at  = cfg[:page_start_at]
+      extension      = cfg[:extension]
+      
+      # Determine all sub nodes
       sub_nodes = []
-      
-      orders = {'newest-first' => :desc,
-                'oldest-first' => :asc,
-                'newest-last'  => :asc,
-                'oldest-last'  => :desc,
-                'asc'          => :asc,
-                'desc'         => :desc}
-      
-      kind_attribute = data['kind_attribute']         || 'kind'
-      act_on         = [data['act_on']].flatten       || []
-      act_on_all     = data['act_on_all']             || act_on.empty?
-      index_size     = data['index_size']             || 10
-      index_order    = data['index_order']            || 'newest-first'
-      index_order    = orders[index_order.downcase]   || :desc
-      archive_size   = data['archive_size']           || 10
-      archive_order  = data['archive_order']          || 'oldest-first'
-      archive_order  = orders[archive_order.downcase] || :asc
-      children_only  = data['children_only']          || true
-      sort_key       = data['sort_key']               || 'created_at'
-      page_basename  = data['page_basename']          || 'page_%d'
-      page_start_at  = data['page_start_at']          || 1
-      
       parent = parent_node(path)
       parent.tree.node_access[:alcn].values.each do |n|
         next if children_only and not n.in_subtree_of?(parent)
@@ -44,6 +38,7 @@ module Webgen::SourceHandler
         sub_nodes << n
       end
       
+      # Sort sub nodes
       sub_nodes.sort! do |a,b|
         if a[sort_key].nil?
           1
@@ -54,6 +49,7 @@ module Webgen::SourceHandler
         end
       end
       
+      # Determine nodes for the index and the different pages
       sub_nodes = {:asc => sub_nodes, :desc => sub_nodes.reverse}
       index_nodes = sub_nodes[index_order][0, index_size]
       pages_nodes = sub_nodes[archive_order]
@@ -64,8 +60,10 @@ module Webgen::SourceHandler
       
       # Create index node
       nodes = []
+      path.ext = extension
       nodes << super(path, :parent => parent) do |node|
-        node.node_info[:config]    = data
+        node.node_info[:config]    = cfg
+        node.node_info[:data]      = data
         node.node_info[:sub_nodes] = index_nodes
         node.node_info[:page]      = page
       end
@@ -74,19 +72,32 @@ module Webgen::SourceHandler
       parent_path = path.parent_path
       pages.each_index do |i|
         basename = page_basename % (page_start_at + i)
-        #p = Webgen::Path.new("#{parent_path}#{basename}", path.source_path)
-        #p.meta_info = path.meta_info
-        path.ext = basename
-        outpath = "#{parent_path}#{basename}"
+        path.basename = basename
+        path.ext = extension
         outpath = output_path(parent, path)
-        warn "#{path} --> #{outpath}"
         nodes << super(path, :parent => parent, :output_path => outpath) do |node|
-          warn node.inspect
-          node.node_info[:config]    = data
+          node.node_info[:config]    = cfg
+          node.node_info[:data]      = data
           node.node_info[:page_num]  = page_start_at + i
           node.node_info[:sub_nodes] = pages[i]
           node.node_info[:page]      = page
         end
+      end
+      
+      # Construct feeds
+      ap nodes.inspect
+      feed_source_handler = website.cache.instance("Webgen::SourceHandler::Feed")
+      [:atom, :rss].each do |feed|
+        next if cfg[feed].nil?
+        path.basename, path.ext = cfg[feed].split(".", 2)
+        path.meta_info = path.meta_info.merge(cfg[:feed_cfg])
+        path.meta_info[feed.to_s] = true
+        ap path.parent_path
+        n = feed_source_handler.create_node(path, sub_nodes[:desc], false)
+        ap n.inspect
+        ap n.first.parent.inspect
+        nodes << n
+        path.meta_info[feed.to_s] = false
       end
       
       nodes
@@ -99,6 +110,45 @@ module Webgen::SourceHandler
       node.node_info[:used_nodes] << chain.first.alcn
       context = chain.first.node_info[:page].blocks["content"].render(Webgen::Context.new(:chain => chain))
       context.content
+    end
+  
+  private
+  
+    def get_config(data)
+      data = data || {}
+      
+      orders = {'newest-first' => :desc,
+                'oldest-first' => :asc,
+                'newest-last'  => :asc,
+                'oldest-last'  => :desc,
+                'asc'          => :asc,
+                'desc'         => :desc}
+      
+      cfg = {}
+      
+      cfg[:kind_attribute] = data['kind_attribute']   || 'kind'
+      cfg[:act_on]         = data['act_on']           || []
+      cfg[:act_on_all]     = data['act_on_all']       || cfg[:act_on].empty?
+      cfg[:index_size]     = data['index_size']       || 10
+      cfg[:index_order]    = data['index_order']      || 'newest-first'
+      cfg[:archive_size]   = data['archive_size']     || 10
+      cfg[:archive_order]  = data['archive_order']    || 'oldest-first'
+      cfg[:children_only]  = data['children_only']    || true
+      cfg[:sort_key]       = data['sort_key']         || 'created_at'
+      cfg[:page_basename]  = data['page_basename']    || 'page_%d'
+      cfg[:page_start_at]  = data['page_start_at']    || 1
+      cfg[:extension]      = data['extension']        || 'html'
+      cfg[:atom]           = data['feed.atom']        || 'atom.xml'
+      cfg[:rss]            = data['feed.rss']         || 'rss.xml'
+      cfg[:feed_cfg]       = data['feed.config']      || {}
+      
+      cfg[:act_on]         = [cfg[:act_on]].flatten
+      cfg[:index_order]    = orders[cfg[:index_order].downcase]   || :desc
+      cfg[:archive_order]  = orders[cfg[:archive_order].downcase] || :asc
+      cfg[:atom]           = nil if !cfg[:feed_cfg]['author'] or cfg[:atom] == "~"
+      cfg[:rss]            = nil if !cfg[:feed_cfg]['author'] or cfg[:rss] == "~"
+
+      cfg
     end
 
   end

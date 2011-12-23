@@ -18,13 +18,17 @@ module Webgen::SourceHandler
     def create_node(path)
       page = page_from_path(path)
       path.ext = 'xml'
-      if path.meta_info['site_url'].nil?
+      
+      site_url = path.meta_info['site_url'] || website.config['website.url']
+      
+      if !site_url
         raise Webgen::NodeCreationError.new("Needed information site_url is missing",
                                             self.class.name, path)
       end
 
       super(path) do |node|
-        node.node_info[:sitemap] = page
+        node.node_info[:sitemap]  = page
+        node.node_info[:site_url] = site_url
       end
     end
 

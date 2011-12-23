@@ -1,14 +1,19 @@
 module Webgen::ContentProcessor
 
   class Context
-  
     attr_reader :context
       
-    def initialize(context)
+    def initialize(context, opts = {})
       @context = context
     end
     
     def get_binding
+      binding
+    end
+    
+    def get_erb_binding
+      require 'erb'
+      extend(ERB::Util)
       binding
     end
     

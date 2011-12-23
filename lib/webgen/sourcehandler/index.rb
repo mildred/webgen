@@ -12,6 +12,7 @@ module Webgen::SourceHandler
     # Create the node for +path+. If the +path+ has the name of a content processor as the first
     # part in the extension, it is preprocessed.
     def create_node(path)
+      warn "CERATE INDEX NODE"
       page = page_from_path(path)
       data = YAML::load(page.blocks["content"].content)
       cfg = get_config(data)
@@ -92,10 +93,18 @@ module Webgen::SourceHandler
         path.basename, path.ext = cfg[feed].split(".", 2)
         path.meta_info = path.meta_info.merge(cfg[:feed_cfg])
         path.meta_info[feed.to_s] = true
+        path.meta_info[:toto_new] = true
         ap path.parent_path
-        n = feed_source_handler.create_node(path, sub_nodes[:desc], false)
+        
+        n = website.blackboard.invoke(:create_nodes, path, feed_source_handler) do |path|
+          feed_source_handler.create_node(path, sub_nodes[:desc], false)
+        end
+        
+        
+        #n = feed_source_handler.create_node(path, sub_nodes[:desc], false)
         ap n.inspect
         ap n.first.parent.inspect
+        ap :src => n.first.node_info[:src]
         nodes << n
         path.meta_info[feed.to_s] = false
       end

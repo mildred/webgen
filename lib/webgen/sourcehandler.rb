@@ -91,6 +91,7 @@ module Webgen
         unused_paths = Set.new
         referenced_nodes = Set.new
         all_but_passive_paths = Set.new(find_all_source_paths.select {|name, path| !path.passive?}.collect {|name, path| name})
+        num_pass = 0
         begin
           used_paths = all_but_passive_paths - unused_paths
           paths_to_use = Set.new
@@ -139,6 +140,10 @@ module Webgen
           unused_paths.merge(used_paths - paths)
           website.tree.node_access[:alcn].each {|name, node| website.tree.delete_node(node) if node.flagged?(:reinit)}
           website.cache.reset_volatile_cache
+          num_pass += 1
+          if num_pass > 100
+            raise Exception.new("Infinite loop detected after #{num_pass} iterations. The following paths are left used: #{used_paths.inspect}\nif you modified path.meta_info, should should definitely NOT do that. It will void the meta info change detection, and detect the path as always changing.")
+          end
         end until used_paths.empty?
       end
 
@@ -269,13 +274,14 @@ module Webgen
         new_mi = default_meta_info(@paths[path] || Webgen::Path.new(path), node.node_info[:processor])
         new_mi.delete('modified_at')
         if old_mi.nil?
-          old_mi = new_mi
-          website.cache[:sourcehandler_path_mi][old_mi_key] = old_mi
+          #old_mi = new_mi
+          #website.cache[:sourcehandler_path_mi][old_mi_key] = old_mi
           #return true
-          #warn node.inspect
-          #warn old_mi_key.inspect
-          #raise Exception.new("#{node.node_info[:processor]}: internal error, node #{path} not in cache")
+          warn node.inspect
+          warn old_mi_key.inspect
+          raise Exception.new("#{node.node_info[:processor]}: internal error, node #{path} not in cache\nDid you use website.blackboard.invoke(:create_nodes, ...)? (this sets the cache).")
         end
+        ap :old => old_mi, :new => new_mi if old_mi != new_mi
         node.flag(:dirty_meta_info) if !old_mi || old_mi != new_mi
       end
 

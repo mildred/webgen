@@ -91,22 +91,22 @@ module Webgen::SourceHandler
       [:atom, :rss].each do |feed|
         next if cfg[feed].nil?
         path.basename, path.ext = cfg[feed].split(".", 2)
-        path.meta_info = path.meta_info.merge(cfg[:feed_cfg])
-        path.meta_info[feed.to_s] = true
-        path.meta_info[:toto_new] = true
         ap path.parent_path
         
         n = website.blackboard.invoke(:create_nodes, path, feed_source_handler) do |path|
-          feed_source_handler.create_node(path, sub_nodes[:desc], false)
+          feed_source_handler.create_node(path,
+            :sub_nodes   => sub_nodes[:desc],
+            :rewrite_ext => false,
+            :config      => cfg[:feed_cfg],
+            :atom        => (feed == :atom),
+            :rss         => (feed == :rss))
         end
-        
-        
+
         #n = feed_source_handler.create_node(path, sub_nodes[:desc], false)
         ap n.inspect
         ap n.first.parent.inspect
         ap :src => n.first.node_info[:src]
         nodes << n
-        path.meta_info[feed.to_s] = false
       end
       
       nodes

@@ -13,30 +13,38 @@ module Webgen::SourceHandler
     end
 
     # Create atom and/or rss feed files from +path+.
-    def create_node(path, sub_nodes = nil, rewrite_ext = true)
+    def create_node(path, opts)
+      opts[:sub_nodes]   ||= nil
+      opts[:rewrite_ext] ||= true
+      opts[:config]      ||= path.meta_info
+      opts[:atom]        ||= opts[:config]['atom']
+      opts[:rss]         ||= opts[:config]['rss']
+      
       page = page_from_path(path)
       path.meta_info['link'] ||= path.parent_path
-      
-      site_url = path.meta_info['site_url'] || website.config['website.url']
 
-      if !path.meta_info['author'] || !site_url || (!sub_nodes && !path.meta_info['entries'])
+      config = opts[:config]
+      config['site_url'] ||= website.config['website.url']
+      
+      if !config['author'] || !config['site_url'] || (!opts[:sub_nodes] && !config['entries'])
         raise Webgen::NodeCreationError.new("At least one of author/entries/site_url is missing",
                                             self.class.name, path)
       end
 
+
       create_feed_node = lambda do |type|
-        path.ext = type if rewrite_ext
+        path.ext = type if opts[:rewrite_ext]
         super(path) do |node|
+          node.node_info[:config] = config
           node.node_info[:feed] = page
           node.node_info[:feed_type] = type
-          node.node_info[:site_url] = site_url
-          node.node_info[:sub_nodes] = sub_nodes
+          node.node_info[:sub_nodes] = opts[:sub_nodes]
         end
       end
 
       nodes = []
-      nodes << create_feed_node['atom'] if path.meta_info['atom']
-      nodes << create_feed_node['rss'] if path.meta_info['rss']
+      nodes << create_feed_node['atom'] if opts[:atom]
+      nodes << create_feed_node['rss']  if opts[:rss]
 
       nodes
     end
@@ -57,11 +65,11 @@ module Webgen::SourceHandler
 
     # Return the entries for the feed +node+.
     def feed_entries(node)
-      nr_items = (node['number_of_entries'].to_i == 0 ? 10 : node['number_of_entries'].to_i)
+      nr_items = (node.cfg['number_of_entries'].to_i == 0 ? 10 : node.cfg['number_of_entries'].to_i)
       sub_nodes = node.node_info[:sub_nodes]
       
       unless sub_nodes
-        patterns = [node['entries']].flatten.map {|pat| Webgen::Path.make_absolute(node.parent.alcn, pat)}
+        patterns = [node.cfg['entries']].flatten.map {|pat| Webgen::Path.make_absolute(node.parent.alcn, pat)}
         sub_nodes = node.tree.node_access[:alcn].values.
           select {|node| patterns.any? {|pat| node =~ pat} && node.node_info[:page]}
       end
@@ -71,17 +79,21 @@ module Webgen::SourceHandler
 
     # Return the feed link URL for the feed +node+.
     def feed_link(node)
-      Webgen::Node.url(File.join(node.node_info[:site_url], node.tree[node['link']].path), false)
+      Webgen::Node.url(File.join(node.cfg['site_url'], node.tree[node['link']].path), false)
     end
 
     # Return the site_url feed +node+.
     def site_url(node)
-      node.node_info[:site_url]
+      node.cfg['site_url']
     end
 
     # Return the content of an +entry+ of the feed +node+.
     def entry_content(node, entry)
-      entry.node_info[:page].blocks[node['content_block_name'] || 'content'].render(Webgen::Context.new(:chain => [entry])).content
+      entry.node_info[:page].blocks[node.cfg['content_block_name'] || 'content'].render(Webgen::Context.new(:chain => [entry])).content
+    end
+    
+    def cfg(node)
+      node.node_info[:config]
     end
 
     #######

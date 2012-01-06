@@ -14,10 +14,10 @@ template: ~
     <% context.node.feed_entries.each do |entry| %>
     <item>
       <title><%= h(entry['title']) %></title>
-      <link><%= Webgen::Node.url(File.join(context.node['site_url'], entry.path), false) %></link>
+      <link><%= Webgen::Node.url(File.join(context.node.site_url, entry.path), false) %></link>
       <description><%= h(context.node.entry_content(entry)) %></description>
       <pubDate><%= entry['modified_at'].rfc822 %></pubDate>
-      <guid isPermaLink="true"><%= Webgen::Node.url(File.join(context.node['site_url'], entry.path), false) %></guid>
+      <guid isPermaLink="true"><%= Webgen::Node.url(File.join(context.node.site_url, entry.path), false) %></guid>
     </item>
     <% end %>
 

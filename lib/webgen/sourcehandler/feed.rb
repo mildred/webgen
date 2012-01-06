@@ -18,7 +18,8 @@ module Webgen::SourceHandler
     # Create atom and/or rss feed files from +path+.
     def create_node(path)
       page = page_from_path(path)
-      path.meta_info['link'] ||= path.parent_path
+      path.meta_info['link']       ||= path.parent_path
+      path.meta_info['site_url']   ||= website.config['website.url']
 
       if MANDATORY_INFOS.any? {|t| path.meta_info[t].nil?}
         raise Webgen::NodeCreationError.new("At least one of #{MANDATORY_INFOS.join('/')} is missing",
@@ -67,6 +68,11 @@ module Webgen::SourceHandler
     # Return the feed link URL for the feed +node+.
     def feed_link(node)
       Webgen::Node.url(File.join(node['site_url'], node.tree[node['link']].path), false)
+    end
+
+    # Return the site_url feed +node+.
+    def site_url(node)
+      node['site_url']
     end
 
     # Return the content of an +entry+ of the feed +node+.

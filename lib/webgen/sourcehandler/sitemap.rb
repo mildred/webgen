@@ -18,6 +18,9 @@ module Webgen::SourceHandler
     def create_node(path)
       page = page_from_path(path)
       path.ext = 'xml'
+
+      path.meta_info['site_url'] ||= website.config['website.url']
+
       if path.meta_info['site_url'].nil?
         raise Webgen::NodeCreationError.new("Needed information site_url is missing",
                                             self.class.name, path)
@@ -42,6 +45,11 @@ module Webgen::SourceHandler
     # Return the alcns of the sitemap +node+ as a flat list.
     def alcns(node)
       website.blackboard.invoke(:create_sitemap, node, node.lang, options_for_node(node)).to_lcn_list.flatten
+    end
+
+    # Return the site_url
+    def site_url(node)
+      node['site_url']
     end
 
     #######

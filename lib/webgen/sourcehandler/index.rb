@@ -13,7 +13,6 @@ module Webgen::SourceHandler
     # part in the extension, it is preprocessed.
     def create_node(path)
       puts "Webgen::SourceHandler::Index.create_node(#{path})"
-      path_orig = path.dup
       page = page_from_path(path)
       ap :meta_info_id => path.meta_info.object_id.to_s(16), :path => path
       data = YAML::load(page.blocks["content"].content)
@@ -92,10 +91,10 @@ module Webgen::SourceHandler
       feed_source_handler = website.cache.instance("Webgen::SourceHandler::Feed")
       [:atom, :rss].each do |feed|
         next if cfg[feed].nil?
-        path_orig.basename, path_orig.ext = cfg[feed].split(".", 2)
+        path.basename, path.ext = cfg[feed].split(".", 2)
         ap path.parent_path
         
-        n = website.blackboard.invoke(:create_nodes, path_orig, feed_source_handler) do |path|
+        n = website.blackboard.invoke(:create_nodes, path, feed_source_handler) do |path|
           feed_source_handler.create_node(path,
             :sub_nodes   => sub_nodes[:desc],
             :rewrite_ext => false,

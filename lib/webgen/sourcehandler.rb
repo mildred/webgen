@@ -246,10 +246,9 @@ module Webgen
       # of the +source_handler+ is used. After the nodes are created, it is also checked if they
       # have all needed properties.
       def create_nodes(path, source_handler) #:yields: path
-        raise Exception.new "Cannot create #{source_handler.class.name} node with a path that has modified meta information: #{path}\noriginal: #{path.meta_info.inspect}\nchanged:  #{path.meta_info_cached.inspect}" if path.meta_info_changed?
         path = path.dup
+        path.meta_info_bare ||= path.meta_info
         path.meta_info = default_meta_info(path, source_handler.class.name)
-        path.meta_info_cached = path.meta_info.dup
         puts "create_nodes(#{path}, #{source_handler})"
         #ap :meta_info_id => path.meta_info.object_id.to_s(16), :path => path
         #ap :default_meta_info => [path, source_handler.class.name], :mi_title => path.meta_info['title']
@@ -276,7 +275,7 @@ module Webgen
 
       # Return the default meta info for the pair of +path+ and +sh_name+.
       def default_meta_info(path, sh_name)
-        path.meta_info.merge(website.config['sourcehandler.default_meta_info'][:all]).
+        (path.meta_info_bare || path.meta_info).merge(website.config['sourcehandler.default_meta_info'][:all]).
           merge(website.config['sourcehandler.default_meta_info'][sh_name] || {})
       end
 

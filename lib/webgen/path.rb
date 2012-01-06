@@ -105,8 +105,8 @@ module Webgen
     # Extracted meta information for the path.
     attr_accessor :meta_info
     
-    # The cached meta info
-    attr_accessor :meta_info_cached
+    # The bare meta info before the source handler is known
+    attr_accessor :meta_info_bare
 
     # Specifies whether this path should be used during the "tree update" phase of a webgen run or
     # only later during node resolution.
@@ -162,10 +162,6 @@ module Webgen
       temp = super
       temp.instance_variable_set(:@meta_info, @meta_info.dup)
       temp
-    end
-    
-    def meta_info_changed?
-      !@meta_info_cached.nil? and @meta_info != @meta_info_cached
     end
 
     # Has the content of this path changed since the last webgen run? This default implementation

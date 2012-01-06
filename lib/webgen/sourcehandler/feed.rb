@@ -19,6 +19,7 @@ module Webgen::SourceHandler
     def create_node(path)
       page = page_from_path(path)
       path.meta_info['link']       ||= path.parent_path
+      path.meta_info['extensions'] ||= {}
       path.meta_info['site_url']   ||= website.config['website.url']
 
       if MANDATORY_INFOS.any? {|t| path.meta_info[t].nil?}
@@ -27,7 +28,7 @@ module Webgen::SourceHandler
       end
 
       create_feed_node = lambda do |type|
-        path.ext = type
+        path.ext = page.meta_info['extensions'][type] || type
         super(path) do |node|
           node.node_info[:feed] = page
           node.node_info[:feed_type] = type

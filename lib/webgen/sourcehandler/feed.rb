@@ -18,10 +18,17 @@ module Webgen::SourceHandler
       path.meta_info['link']       ||= path.parent_path
       path.meta_info['extensions'] ||= {}
       path.meta_info['site_url']   ||= website.config['website.url']
+      path.meta_info['author']     ||= website.config['sourcehandler.feed.default_author']
 
       if !path.meta_info['author'] || !path.meta_info['site_url'] || (!path.meta_info['sub_nodes'] && !path.meta_info['entries'])
         raise Webgen::NodeCreationError.new("At least one of author/entries/site_url is missing",
                                             self.class.name, path)
+      end
+
+      if path.meta_info['sub_nodes']
+        path.meta_info['sub_nodes'].each do |e|
+          raise Exception.new "Missing node_info[:page] from entry #{e.inspect} for feed" unless e.node_info[:page]
+        end
       end
 
       create_feed_node = lambda do |type|

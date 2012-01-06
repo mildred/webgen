@@ -58,14 +58,36 @@ module Webgen::SourceHandler
         pages << pages_nodes.slice!(0, archive_size)
       end
 
-      # Create index node
+      # Construct feeds
       nodes = []
+      feeds = {}
+      feed_source_handler = website.cache.instance("Webgen::SourceHandler::Feed")
+      [:atom, :rss].each do |feed|
+        next if cfg[feed].nil?
+        tmp = cfg[feed].split(".", 2)
+        nodes << create_sub_nodes(
+            "Webgen::SourceHandler::Feed", path,
+            :basename => tmp.first, :ext => tmp.last) do |ci_path, sh|
+          ci_path.meta_info.merge! cfg[:feed_cfg]
+          ci_path.meta_info['atom'] = false
+          ci_path.meta_info['rss']  = false
+          ci_path.meta_info[feed.to_s] = true
+          ci_path.meta_info['sub_nodes'] = sub_nodes[:asc].delete_if { |n| n.node_info[:page].nil? }
+          ci_path.meta_info['extensions'] = {feed.to_s => ci_path.ext}
+          n = sh.create_node(ci_path, :page => opts[:page])
+          feeds[feed] = n.first
+          n
+        end
+      end
+
+      # Create index node
       path.ext = extension
       nodes << super(path, :parent => opts[:parent]) do |node|
         node.node_info[:config]    = cfg
         node.node_info[:data]      = data
         node.node_info[:sub_nodes] = index_nodes
         node.node_info[:page]      = opts[:page]
+        node.node_info.merge! feeds
       end
 
       # Create page nodes
@@ -81,24 +103,8 @@ module Webgen::SourceHandler
           node.node_info[:page_num]  = page_start_at + i
           node.node_info[:sub_nodes] = pages[i]
           node.node_info[:page]      = opts[:page]
+          node.node_info.merge! feeds
         end
-      end
-
-      # Construct feeds
-      feed_source_handler = website.cache.instance("Webgen::SourceHandler::Feed")
-      [:atom, :rss].each do |feed|
-        next if cfg[feed].nil?
-        path.basename, ext = cfg[feed].split(".", 2)
-        n = website.blackboard.invoke(:create_nodes, path, feed_source_handler) do |path|
-          path.meta_info.merge! cfg[:feed_cfg]
-          path.meta_info['atom'] = false
-          path.meta_info['rss']  = false
-          path.meta_info[feed.to_s] = true
-          path.meta_info['sub_nodes'] = sub_nodes[:asc]
-          path.meta_info['extensions'] = {feed.to_s => ext}
-          feed_source_handler.create_node(path, :page => opts[:page])
-        end
-        nodes << n
       end
 
       nodes
@@ -146,8 +152,8 @@ module Webgen::SourceHandler
       cfg[:act_on]         = [cfg[:act_on]].flatten
       cfg[:index_order]    = orders[cfg[:index_order].downcase]   || :desc
       cfg[:archive_order]  = orders[cfg[:archive_order].downcase] || :asc
-      cfg[:atom]           = nil if !cfg[:feed_cfg]['author'] or cfg[:atom] == "~"
-      cfg[:rss]            = nil if !cfg[:feed_cfg]['author'] or cfg[:rss] == "~"
+      cfg[:atom]           = nil if cfg[:atom] == "~"
+      cfg[:rss]            = nil if cfg[:rss] == "~"
 
       cfg
     end

@@ -117,6 +117,8 @@ config.sourcehandler.default_meta_info({
                                          }
                                        }, :doc => "Default meta information for all nodes and for nodes belonging to a specific source handler")
 
+config.sourcehandler.feed.default_author('Administrator', :doc => 'The default author for feeds')
+
 config.sourcehandler.template.default_template('default.template', :doc => 'The name of the default template file of a directory')
 
 website.autoload_service(:templates_for_node, 'Webgen::SourceHandler::Template')

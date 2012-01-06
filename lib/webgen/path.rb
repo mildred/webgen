@@ -105,6 +105,9 @@ module Webgen
     # Extracted meta information for the path.
     attr_accessor :meta_info
 
+    # The bare meta info before the source handler is known
+    attr_accessor :meta_info_bare
+
     # Specifies whether this path should be used during the "tree update" phase of a webgen run or
     # only later during node resolution.
     attr_writer :passive

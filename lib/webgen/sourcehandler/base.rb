@@ -160,6 +160,8 @@ module Webgen::SourceHandler
         result
       end
       
+    private
+
       def output_path_fragment(part, path, specials = {})
         case part
           when String  then part

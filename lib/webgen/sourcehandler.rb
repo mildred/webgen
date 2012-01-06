@@ -91,6 +91,7 @@ module Webgen
         unused_paths = Set.new
         referenced_nodes = Set.new
         all_but_passive_paths = Set.new(find_all_source_paths.select {|name, path| !path.passive?}.collect {|name, path| name})
+        num_pass = 0
         begin
           used_paths = all_but_passive_paths - unused_paths
           paths_to_use = Set.new
@@ -139,6 +140,10 @@ module Webgen
           unused_paths.merge(used_paths - paths)
           website.tree.node_access[:alcn].each {|name, node| website.tree.delete_node(node) if node.flagged?(:reinit)}
           website.cache.reset_volatile_cache
+          num_pass += 1
+          if num_pass >= 100
+            raise Exception.new("Infinite loop detected after #{num_pass} iterations.")
+          end
         end until used_paths.empty?
       end
 
@@ -234,8 +239,10 @@ module Webgen
       # have all needed properties.
       def create_nodes(path, source_handler) #:yields: path
         path = path.dup
+        path.meta_info_bare ||= path.meta_info
         path.meta_info = default_meta_info(path, source_handler.class.name)
-        (website.cache[:sourcehandler_path_mi] ||= {})[[path.path, source_handler.class.name]] = path.meta_info.dup
+        website.cache[:sourcehandler_path_mi] ||= {}
+        website.cache[:sourcehandler_path_mi][[path.path, source_handler.class.name]] = path.meta_info.dup
         website.blackboard.dispatch_msg(:before_node_created, path)
         *nodes = if block_given?
                    yield(path)
@@ -254,7 +261,7 @@ module Webgen
 
       # Return the default meta info for the pair of +path+ and +sh_name+.
       def default_meta_info(path, sh_name)
-        path.meta_info.merge(website.config['sourcehandler.default_meta_info'][:all]).
+        (path.meta_info_bare || path.meta_info).merge(website.config['sourcehandler.default_meta_info'][:all]).
           merge(website.config['sourcehandler.default_meta_info'][sh_name] || {})
       end
 
@@ -263,10 +270,17 @@ module Webgen
       # every path change.
       def meta_info_changed?(node)
         path = node.node_info[:creation_path]
-        old_mi = website.cache[:sourcehandler_path_mi][[path, node.node_info[:processor]]]
-        old_mi.delete('modified_at')
-        new_mi = default_meta_info(@paths[path] || Webgen::Path.new(path), node.node_info[:processor])
+        old_mi_key = [path, node.node_info[:processor]]
+        old_mi = website.cache[:sourcehandler_path_mi][old_mi_key]
+        old_mi.delete('modified_at') unless old_mi.nil?
+        new_mi_path = @paths[path] || Webgen::Path.new(path)
+        new_mi = default_meta_info(new_mi_path, node.node_info[:processor])
         new_mi.delete('modified_at')
+        if old_mi.nil?
+          warn node.inspect
+          warn old_mi_key.inspect
+          raise Exception.new("#{node.node_info[:processor]}: internal error, node #{path} not in cache\nDid you use website.blackboard.invoke(:create_nodes, ...)? (this sets the cache).")
+        end
         node.flag(:dirty_meta_info) if !old_mi || old_mi != new_mi
       end
 

@@ -12,9 +12,7 @@ module Webgen::SourceHandler
     # Create the node for +path+. If the +path+ has the name of a content processor as the first
     # part in the extension, it is preprocessed.
     def create_node(path)
-      puts "Webgen::SourceHandler::Index.create_node(#{path})"
       page = page_from_path(path)
-      ap :meta_info_id => path.meta_info.object_id.to_s(16), :path => path
       data = YAML::load(page.blocks["content"].content)
       cfg = get_config(data)
 
@@ -87,13 +85,10 @@ module Webgen::SourceHandler
       end
       
       # Construct feeds
-      ap :nodes_before_feeds => nodes.inspect
       feed_source_handler = website.cache.instance("Webgen::SourceHandler::Feed")
       [:atom, :rss].each do |feed|
         next if cfg[feed].nil?
         path.basename, path.ext = cfg[feed].split(".", 2)
-        ap path.parent_path
-        
         n = website.blackboard.invoke(:create_nodes, path, feed_source_handler) do |path|
           feed_source_handler.create_node(path,
             :sub_nodes   => sub_nodes[:desc],
@@ -102,11 +97,6 @@ module Webgen::SourceHandler
             :atom        => (feed == :atom),
             :rss         => (feed == :rss))
         end
-
-        #n = feed_source_handler.create_node(path, sub_nodes[:desc], false)
-        ap n.inspect
-        ap n.first.parent.inspect
-        ap :src => n.first.node_info[:src]
         nodes << n
       end
       

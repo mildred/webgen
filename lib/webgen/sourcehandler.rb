@@ -141,15 +141,8 @@ module Webgen
           website.tree.node_access[:alcn].each {|name, node| website.tree.delete_node(node) if node.flagged?(:reinit)}
           website.cache.reset_volatile_cache
           num_pass += 1
-          if num_pass >= 10
-            raise Exception.new("Infinite loop detected after #{num_pass} iterations. The following paths are left used: #{used_paths.inspect}\nif you modified path.meta_info or node.meta_info, should should definitely NOT do that. It will void the meta info change detection, and detect the path/node as always changing.
-            
-            NOTE: SourceHandler::Base#page_from_path modifies path.meta_info. If path.meta_info is not changed in Sourcehandler@paths, then there will be a difference between the path.meta_info and the node.meta_info, and the node will always be detected as changed.
-            it is just not allowed to call
-              website.blackboard.invoke(:create_nodes, path, feed_source_handler) do
-            from within a create_node because the create_nodes handler duplicates the path and prevents the path from being updated in Sourcehandler@paths
-            
-            ")
+          if num_pass >= 100
+            raise Exception.new("Infinite loop detected after #{num_pass} iterations.")
           end
         end until used_paths.empty?
       end
@@ -201,7 +194,6 @@ module Webgen
           @paths = {}
           source.paths.each do |path|
             if !(website.config['sourcehandler.ignore'].any? {|pat| File.fnmatch(pat, path, File::FNM_CASEFOLD|File::FNM_DOTMATCH)})
-              #ap path.source_path => path #if path.source_path == "/Blog/index.index"
               @paths[path.source_path] = path
             end
           end
@@ -249,13 +241,8 @@ module Webgen
         path = path.dup
         path.meta_info_bare ||= path.meta_info
         path.meta_info = default_meta_info(path, source_handler.class.name)
-        puts "create_nodes(#{path}, #{source_handler})"
-        #ap :meta_info_id => path.meta_info.object_id.to_s(16), :path => path
-        #ap :default_meta_info => [path, source_handler.class.name], :mi_title => path.meta_info['title']
-        #ap :create_node_path_meta_info => path.meta_info, :source_handler => source_handler.class.name
         website.cache[:sourcehandler_path_mi] ||= {}
         website.cache[:sourcehandler_path_mi][[path.path, source_handler.class.name]] = path.meta_info.dup
-        ap :in_cache => website.cache[:sourcehandler_path_mi][[path.path, source_handler.class.name]], :id => website.cache[:sourcehandler_path_mi][[path.path, source_handler.class.name]].object_id.to_s(16)
         website.blackboard.dispatch_msg(:before_node_created, path)
         *nodes = if block_given?
                    yield(path)
@@ -263,7 +250,6 @@ module Webgen
                    source_handler.create_node(path)
                  end
         nodes = nodes.flatten.compact
-        ap :in_cache => website.cache[:sourcehandler_path_mi][[path.path, source_handler.class.name]], :id => website.cache[:sourcehandler_path_mi][[path.path, source_handler.class.name]].object_id.to_s(16)
         nodes.each {|node| website.blackboard.dispatch_msg(:after_node_created, node)}
         nodes
       rescue Webgen::Error => e
@@ -284,7 +270,6 @@ module Webgen
       # every path change.
       def meta_info_changed?(node)
         path = node.node_info[:creation_path]
-
         old_mi_key = [path, node.node_info[:processor]]
         old_mi = website.cache[:sourcehandler_path_mi][old_mi_key]
         old_mi.delete('modified_at') unless old_mi.nil?
@@ -292,22 +277,9 @@ module Webgen
         new_mi = default_meta_info(new_mi_path, node.node_info[:processor])
         new_mi.delete('modified_at')
         if old_mi.nil?
-          #old_mi = new_mi
-          #website.cache[:sourcehandler_path_mi][old_mi_key] = old_mi
-          #return true
           warn node.inspect
           warn old_mi_key.inspect
           raise Exception.new("#{node.node_info[:processor]}: internal error, node #{path} not in cache\nDid you use website.blackboard.invoke(:create_nodes, ...)? (this sets the cache).")
-        end
-        puts "meta_info_changed? #{node.inspect}"
-        if old_mi != new_mi #or path == "/index.page"
-          ap :path => new_mi_path
-          ap :default_meta => new_mi, :old_meta => old_mi
-          #ap :old => old_mi, :new => new_mi
-          #ap :new_mi_path => new_mi_path.inspect, :processor => node.node_info[:processor], :default_meta => :new_mi
-          #ap :paths_path => [path, @paths[path]]
-          #ap :default_meta_info => [(@paths[path] || Webgen::Path.new(path)), node.node_info[:processor]], :mi_title => new_mi['title']
-          #ap :node => node.inspect, :old => old_mi, :new => new_mi, :path => path, :processor => node.node_info[:processor]
         end
         node.flag(:dirty_meta_info) if !old_mi || old_mi != new_mi
       end

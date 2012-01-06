@@ -1,10 +1,9 @@
 module Webgen::ContentProcessor
 
   class Context
-  
     attr_reader :context
       
-    def initialize(context)
+    def initialize(context, opts = {})
       @context = context
     end
     
@@ -12,6 +11,12 @@ module Webgen::ContentProcessor
       binding
     end
     
+    def get_erb_binding
+      require 'erb'
+      extend(ERB::Util)
+      binding
+    end
+
     def link_item(path)
       path = path.path if path.kind_of? Webgen::Node
       tag = Webgen::Tag::Link.new
@@ -56,7 +61,9 @@ module Webgen::ContentProcessor
       unless attrs[:render].nil?
         attrs[:chain] = [attrs[:render]] + @context[:chain][1..-1]
       end
-      if attrs[:chain].kind_of?(Array)
+      if attrs[:chain].kind_of?(Webgen::Node)
+        attrs[:chain] = [attrs[:chain]]
+      elsif attrs[:chain].kind_of?(Array)
         attrs[:chain].map! do |item|
           if item.kind_of? String
             temp_node = @context.ref_node.resolve(item, @context.dest_node.lang)

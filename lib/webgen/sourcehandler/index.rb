@@ -11,9 +11,9 @@ module Webgen::SourceHandler
 
     # Create the node for +path+. If the +path+ has the name of a content processor as the first
     # part in the extension, it is preprocessed.
-    def create_node(path)
-      page = page_from_path(path)
-      data = YAML::load(page.blocks["content"].content)
+    def create_node(path, opts = {})
+      opts[:page] ||= page_from_path(path)
+      data = YAML::load(opts[:page].blocks["content"].content)
       cfg = get_config(data)
 
       kind_attribute = cfg[:kind_attribute]
@@ -31,9 +31,9 @@ module Webgen::SourceHandler
 
       # Determine all sub nodes
       sub_nodes = []
-      parent = parent_node(path)
-      parent.tree.node_access[:alcn].values.each do |n|
-        next if children_only and not n.in_subtree_of?(parent)
+      opts[:parent] ||= parent_node(path)
+      opts[:parent].tree.node_access[:alcn].values.each do |n|
+        next if children_only and not n.in_subtree_of?(opts[:parent])
         next unless act_on_all or act_on.include?(n[kind_attribute])
         sub_nodes << n
       end
@@ -61,11 +61,11 @@ module Webgen::SourceHandler
       # Create index node
       nodes = []
       path.ext = extension
-      nodes << super(path, :parent => parent) do |node|
+      nodes << super(path, :parent => opts[:parent]) do |node|
         node.node_info[:config]    = cfg
         node.node_info[:data]      = data
         node.node_info[:sub_nodes] = index_nodes
-        node.node_info[:page]      = page
+        node.node_info[:page]      = opts[:page]
       end
 
       # Create page nodes
@@ -74,13 +74,13 @@ module Webgen::SourceHandler
         basename = page_basename % (page_start_at + i)
         path.basename = basename
         path.ext = extension
-        outpath = output_path(parent, path)
-        nodes << super(path, :parent => parent, :output_path => outpath) do |node|
+        outpath = output_path(opts[:parent], path)
+        nodes << super(path, :parent => opts[:parent], :output_path => outpath) do |node|
           node.node_info[:config]    = cfg
           node.node_info[:data]      = data
           node.node_info[:page_num]  = page_start_at + i
           node.node_info[:sub_nodes] = pages[i]
-          node.node_info[:page]      = page
+          node.node_info[:page]      = opts[:page]
         end
       end
 
@@ -96,7 +96,7 @@ module Webgen::SourceHandler
           path.meta_info[feed.to_s] = true
           path.meta_info['sub_nodes'] = sub_nodes[:asc]
           path.meta_info['extensions'] = {feed.to_s => ext}
-          feed_source_handler.create_node(path)
+          feed_source_handler.create_node(path, :page => opts[:page])
         end
         nodes << n
       end

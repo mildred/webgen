@@ -13,8 +13,8 @@ module Webgen::SourceHandler
     end
 
     # Create atom and/or rss feed files from +path+.
-    def create_node(path)
-      page = page_from_path(path)
+    def create_node(path, opts = {})
+      opts[:page] ||= page_from_path(path)
       path.meta_info['link']       ||= path.parent_path
       path.meta_info['extensions'] ||= {}
       path.meta_info['site_url']   ||= website.config['website.url']
@@ -25,9 +25,9 @@ module Webgen::SourceHandler
       end
 
       create_feed_node = lambda do |type|
-        path.ext = page.meta_info['extensions'][type] || type
+        path.ext = path.meta_info['extensions'][type] || type
         super(path) do |node|
-          node.node_info[:feed] = page
+          node.node_info[:feed] = opts[:page]
           node.node_info[:feed_type] = type
         end
       end

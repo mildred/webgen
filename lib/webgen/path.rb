@@ -247,6 +247,18 @@ module Webgen
       "#<Path: #{@path}>"
     end
 
+    def set_path(path)
+      @ext = ""
+      mi = @meta_info
+      @meta_info = {}
+      analyse(path)
+      @meta_info.each do |key, val|
+        mi[key] = val if mi[key] == @meta_info_bare[key]
+      end
+      @meta_info_bare = @meta_info
+      @meta_info = mi
+    end
+
     #######
     private
     #######

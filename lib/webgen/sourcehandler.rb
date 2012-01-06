@@ -92,6 +92,7 @@ module Webgen
         referenced_nodes = Set.new
         all_but_passive_paths = Set.new(find_all_source_paths.select {|name, path| !path.passive?}.collect {|name, path| name})
         num_pass = 0
+        used_paths_before = nil
         begin
           used_paths = all_but_passive_paths - unused_paths
           paths_to_use = Set.new
@@ -141,9 +142,11 @@ module Webgen
           website.tree.node_access[:alcn].each {|name, node| website.tree.delete_node(node) if node.flagged?(:reinit)}
           website.cache.reset_volatile_cache
           num_pass += 1
-          if num_pass >= 100
-            raise Exception.new("Infinite loop detected after #{num_pass} iterations.")
+          if num_pass >= 1000 or used_paths_before == used_paths
+            raise Exception.new("Non enging loop detected after #{num_pass} iterations.\nPaths still in use: #{used_paths.map(&:to_s).join ", "}")
           end
+          used_paths_before = used_paths
+          #puts "Re-updating because of #{used_paths.map(&:to_s).join ", "}"
         end until used_paths.empty?
       end
 
@@ -277,10 +280,14 @@ module Webgen
         new_mi = default_meta_info(new_mi_path, node.node_info[:processor])
         new_mi.delete('modified_at')
         if old_mi.nil?
-          warn node.inspect
+          warn "#{node.inspect} (#{node.node_info[:processor]})"
           warn old_mi_key.inspect
           raise Exception.new("#{node.node_info[:processor]}: internal error, node #{path} not in cache\nDid you use website.blackboard.invoke(:create_nodes, ...)? (this sets the cache).")
         end
+        #if old_mi != new_mi
+        #  ap "#{node.inspect} (#{node.node_info[:processor]})"
+        #  ap :old => old_mi, :new => new_mi
+        #end
         node.flag(:dirty_meta_info) if !old_mi || old_mi != new_mi
       end
 

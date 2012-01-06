@@ -8,9 +8,6 @@ module Webgen::SourceHandler
     include Webgen::WebsiteAccess
     include Base
 
-    # The mandatory keys that need to be set in a feed file.
-    MANDATORY_INFOS = %W[site_url author entries]
-
     def initialize # :nodoc:
       website.blackboard.add_listener(:node_changed?, method(:node_changed?))
     end
@@ -22,8 +19,8 @@ module Webgen::SourceHandler
       path.meta_info['extensions'] ||= {}
       path.meta_info['site_url']   ||= website.config['website.url']
 
-      if MANDATORY_INFOS.any? {|t| path.meta_info[t].nil?}
-        raise Webgen::NodeCreationError.new("At least one of #{MANDATORY_INFOS.join('/')} is missing",
+      if !path.meta_info['author'] || !path.meta_info['site_url'] || (!path.meta_info['sub_nodes'] && !path.meta_info['entries'])
+        raise Webgen::NodeCreationError.new("At least one of author/entries/site_url is missing",
                                             self.class.name, path)
       end
 
@@ -59,11 +56,15 @@ module Webgen::SourceHandler
     # Return the entries for the feed +node+.
     def feed_entries(node)
       nr_items = (node['number_of_entries'].to_i == 0 ? 10 : node['number_of_entries'].to_i)
-      patterns = [node['entries']].flatten.map {|pat| Webgen::Path.make_absolute(node.parent.alcn, pat)}
+      sub_nodes = node['sub_nodes']
 
-      node.tree.node_access[:alcn].values.
-        select {|node| patterns.any? {|pat| node =~ pat} && node.node_info[:page]}.
-        sort {|a,b| a['modified_at'] <=> b['modified_at']}.reverse[0, nr_items]
+      unless sub_nodes
+        patterns = [node['entries']].flatten.map {|pat| Webgen::Path.make_absolute(node.parent.alcn, pat)}
+        sub_nodes = node.tree.node_access[:alcn].values.
+          select {|node| patterns.any? {|pat| node =~ pat} && node.node_info[:page]}
+      end
+
+      sub_nodes.sort {|a,b| a['modified_at'] <=> b['modified_at']}.reverse[0, nr_items]
     end
 
     # Return the feed link URL for the feed +node+.

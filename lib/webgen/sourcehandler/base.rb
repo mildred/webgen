@@ -331,9 +331,9 @@ module Webgen::SourceHandler
       source_handler = source_handler.class.name unless source_handler.kind_of? String
       sh = website.cache.instance(source_handler)
       path = path.dup
-      path.ext = opts[:ext]         if opts[:ext]
-      path.ext = opts[:basename]    if opts[:basename]
-      path.set_path opts[:fullname] if opts[:fullname]
+      path.ext = opts[:ext]           unless opts[:ext].nil? or opts[:ext].empty?
+      path.basename = opts[:basename] unless opts[:basename].nil? or opts[:basename].empty?
+      path.set_path opts[:fullname]   unless opts[:fullname].nil? or opts[:fullname].empty?
       website.blackboard.invoke(:create_nodes, path, sh) do |sub_path|
         yield sub_path, sh
       end

@@ -225,9 +225,9 @@ module Webgen
     # Construct an internal URL for the given +name+ which can be an acn/alcn/path. If the parameter
     # +make_absolute+ is +true+, then a relative URL will be made absolute by prepending the special
     # URL <tt>webgen:://webgen.localhost/</tt>.
-    def self.url(name, make_absolute = true)
+    def self.url(name, make_absolute = true, absolute_prefix='webgen://webgen.localhost/')
       url = URI::parse(URI::escape(name, URL_UNSAFE_PATTERN))
-      url = URI::parse('webgen://webgen.localhost/') + url unless url.absolute? || !make_absolute
+      url = URI::parse(absolute_prefix) + url unless url.absolute? || !make_absolute
       url
     end
 

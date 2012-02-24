@@ -106,7 +106,6 @@ module Webgen::SourceHandler
         path.meta_info[:page] = page_start_at + i
         outpath = output_path(parent, path)
         nodes << super(path, :parent => parent, :output_path => outpath) do |node|
-          ap :path => path.inspect, :parent => opts[:parent].inspect, :sub => pages[i].map(&:inspect)
           node.node_info[:config]    = cfg
           node.node_info[:data]      = data
           node.node_info[:page_num]  = page_start_at + i

@@ -39,6 +39,7 @@ module Webgen::SourceHandler
 
       nodes << super(path, :parent => parent) do |node|
         node.node_info[:config] = data
+        node.node_info[:tags] = tags
         parent = node
       end
 

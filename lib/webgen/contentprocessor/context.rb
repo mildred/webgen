@@ -10,14 +10,14 @@ module Webgen::ContentProcessor
     def get_binding
       binding
     end
-    
+
     def get_erb_binding
       require 'erb'
       extend(ERB::Util)
       binding
     end
 
-    def link_item(path)
+    def html_link(path)
       path = path.path if path.kind_of? Webgen::Node
       tag = Webgen::Tag::Link.new
       tag.set_params 'tag.link.path' => path
@@ -33,29 +33,34 @@ module Webgen::ContentProcessor
     
     def link_absolute(path)
       path = path.path if path.kind_of? Webgen::Node
-      Webgen::Node.url(path, true)
+      Webgen::Node.url(path, true, config['website.url'])
     end
-    
+
     alias :link_rel   :link_relative
     alias :link_path  :link_relative
+    alias :link_item  :link_relative
     alias :link_abs   :link_absolute
-    
+
+    def config
+      Webgen::WebsiteAccess.website.config
+    end
+
     def node
       @context.node
     end
-    
+
     def content_node
       @context.content_node
     end
-    
+
     def ref_node
       @context.ref_node
     end
-    
+
     def dest_node
       @context.dest_node
     end
-    
+
     def block(name, attrs = {})
       attrs[:name]     = name.to_s
       unless attrs[:render].nil?

@@ -305,9 +305,10 @@ module Webgen::SourceHandler
 
     # Utility method for creating a Webgen::Page object from the +path+. Also updates
     # <tt>path.meta_info</tt> with the meta info from the page.
-    def page_from_path(path)
+    def page_from_path(path, meta_block_name=nil)
       begin
         page = Webgen::Page.from_data(path.io.data, path.meta_info)
+        page.parse_meta_block(meta_block_name) if meta_block_name
       rescue Webgen::Page::FormatError => e
         raise Webgen::NodeCreationError.new("Error reading source path: #{e.message}",
                                             self.class.name, path)

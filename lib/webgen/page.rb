@@ -156,6 +156,20 @@ module Webgen
       @blocks = blocks
     end
 
+    def parse_meta_block(meta_block_name)
+      block_name = meta_info["block_meta_#{meta_block_name}"] || "meta_#{meta_block_name}"
+      meta = blocks[block_name]
+      if meta
+        meta = YAML::load(meta.content)
+        unless meta.kind_of?(Hash)
+          raise FormatError, "Invalid structure of named meta information block (#{block_name}): expected YAML hash but found #{meta.class}"
+        end
+        @meta_info = meta.merge(meta_info)
+      end
+    rescue ArgumentError => e
+      raise FormatError, "Invalid YAML syntax in named meta information block (#{block_name}): #{e.message}"
+    end
+
   end
 
 end

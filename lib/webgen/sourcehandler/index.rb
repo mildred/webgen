@@ -12,7 +12,10 @@ module Webgen::SourceHandler
     # Create the node for +path+. If the +path+ has the name of a content processor as the first
     # part in the extension, it is preprocessed.
     def create_node(path, opts = {})
-      opts[:page] ||= page_from_path(path)
+
+      opts[:page] ||= page_from_path(path, "index")
+
+      # check the config_index block
       block_name = path.meta_info['block_config_index'] || "config_index"
       data = YAML::load(opts[:page].get_block(block_name, "content").content) || {}
       cfg = get_config(data)

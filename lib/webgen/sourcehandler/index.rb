@@ -34,12 +34,15 @@ module Webgen::SourceHandler
       extension      = cfg[:extension]
 
       # Determine all sub nodes
-      sub_nodes = []
-      opts[:parent] ||= parent_node(path)
-      opts[:parent].tree.node_access[:alcn].values.each do |n|
-        next if children_only and not n.in_subtree_of?(opts[:parent])
-        next unless act_on_all or act_on.include?(n[kind_attribute])
-        sub_nodes << n
+      sub_nodes = opts[:nodes] || []
+      parent = parent_node(path)
+      unless opts[:nodes]
+        opts[:parent] ||= parent
+        parent.tree.node_access[:alcn].values.each do |n|
+          next if children_only and not n.in_subtree_of?(opts[:parent])
+          next unless act_on_all or act_on.include?(n[kind_attribute])
+          sub_nodes << n
+        end
       end
 
       # Sort sub nodes
@@ -86,7 +89,7 @@ module Webgen::SourceHandler
 
       # Create index node
       path.ext = extension
-      nodes << super(path, :parent => opts[:parent]) do |node|
+      nodes << super(path, :parent => parent) do |node|
         node.node_info[:config]    = cfg
         node.node_info[:data]      = data
         node.node_info[:sub_nodes] = index_nodes
@@ -101,8 +104,9 @@ module Webgen::SourceHandler
         path.basename = basename
         path.ext = extension
         path.meta_info[:page] = page_start_at + i
-        outpath = output_path(opts[:parent], path)
-        nodes << super(path, :parent => opts[:parent], :output_path => outpath) do |node|
+        outpath = output_path(parent, path)
+        nodes << super(path, :parent => parent, :output_path => outpath) do |node|
+          ap :path => path.inspect, :parent => opts[:parent].inspect, :sub => pages[i].map(&:inspect)
           node.node_info[:config]    = cfg
           node.node_info[:data]      = data
           node.node_info[:page_num]  = page_start_at + i

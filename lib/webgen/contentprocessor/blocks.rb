@@ -68,7 +68,7 @@ module Webgen::ContentProcessor
       end
       block_node = used_chain.first
 
-      if !block_node || !block_node.node_info[:page].blocks.has_key?(options[:name])
+      if !block_node || !block_node.node_info[:page] || !block_node.node_info[:page].blocks.has_key?(options[:name])
         if options[:notfound] == 'ignore'
           return ''
         elsif block_node

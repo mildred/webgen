@@ -12,7 +12,8 @@ module Webgen::SourceHandler
     # part in the extension, it is preprocessed.
     def create_node(path, opts = {})
       opts[:page] ||= page_from_path(path)
-      data = YAML::load(opts[:page].blocks["content"].content) || {}
+      block_name = path.meta_info['block_config_tags'] || "config_tags"
+      data = YAML::load(opts[:page].get_block(block_name, "content").content) || {}
       tags = {}
 
       kind_attribute = data['kind_attribute']   || 'kind'

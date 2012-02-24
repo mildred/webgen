@@ -13,7 +13,8 @@ module Webgen::SourceHandler
     # part in the extension, it is preprocessed.
     def create_node(path, opts = {})
       opts[:page] ||= page_from_path(path)
-      data = YAML::load(opts[:page].blocks["content"].content)
+      block_name = path.meta_info['block_config_index'] || "config_index"
+      data = YAML::load(opts[:page].get_block(block_name, "content").content) || {}
       cfg = get_config(data)
 
       kind_attribute = cfg[:kind_attribute]
@@ -96,6 +97,7 @@ module Webgen::SourceHandler
         basename = page_basename % (page_start_at + i)
         path.basename = basename
         path.ext = extension
+        path.meta_info[:page] = page_start_at + i
         outpath = output_path(opts[:parent], path)
         nodes << super(path, :parent => opts[:parent], :output_path => outpath) do |node|
           node.node_info[:config]    = cfg

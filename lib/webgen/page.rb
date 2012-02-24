@@ -142,6 +142,13 @@ module Webgen
     # The hash of blocks for the page.
     attr_reader :blocks
 
+    def get_block(*block_names)
+      block_names.each do |b|
+        return blocks[b] if blocks.has_key? b
+      end
+      return nil
+    end
+
     # Create a new Page object with the meta information provided in +meta_info+ and the given
     # +blocks+.
     def initialize(meta_info = {}, blocks = {})

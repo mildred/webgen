@@ -28,12 +28,13 @@ module Webgen::ContentProcessor
       path = path.path if path.kind_of? Webgen::Node
       tag = Webgen::Tag::Relocatable.new
       tag.set_params 'tag.relocatable.path' => path
-      tag.call(nil, nil, @context)
+      res = tag.call(nil, nil, @context)
+      res
     end
     
     def link_absolute(path)
       path = path.path if path.kind_of? Webgen::Node
-      Webgen::Node.url(path, true, config['website.url'])
+      Webgen::Node.url(path, true, :absolute_prefix => config['website.url'], :hide_index => true)
     end
 
     alias :link_rel   :link_relative

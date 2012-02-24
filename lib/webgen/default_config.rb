@@ -8,7 +8,10 @@ config.website.cache([:file, 'webgen.cache'], :doc => 'The file name (or String)
 config.website.lang('en', :doc => 'The default language used for the website')
 config.website.link_to_current_page(false, :doc => 'Specifies whether links to the current page should be used')
 config.website.url(false, :doc => 'Site URL, used by sitemap and feeds')
-config.website.basename_index("index", :doc => 'Basename of index file')
+config.website.index.basename("index", :doc => 'Basename of index file')
+config.website.index.ext("html", :doc => 'Extensions of index file')
+config.website.index.hide(true, :doc => 'Hide index file in links')
+
 
 # All things regarding logging
 config.logger.mask(nil, :doc => 'Only show logging events which match the regexp mask')
@@ -193,6 +196,7 @@ config.contentprocessor.xmllint.options("--catalogs --noout --valid", :doc => 'O
 config.contentprocessor.kramdown.options({:auto_ids => true}, :doc => 'The options hash for the kramdown processor')
 config.contentprocessor.kramdown.handle_links(true, :doc => 'Whether all links in a kramdown document should be handled by webgen')
 
+config.contentprocessor.haml({}, :doc => "HAML options, passed to Haml::Engine#initialize")
 
 config.tag.metainfo.escape_html(true, :doc => 'Special HTML characters in the output will be escaped if true')
 

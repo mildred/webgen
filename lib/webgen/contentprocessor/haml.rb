@@ -11,8 +11,12 @@ module Webgen::ContentProcessor
     def call(context)
       require 'haml'
 
+      options = Webgen::WebsiteAccess.website.config['contentprocessor.haml'] || {}
+      options = Hash[options.map { |k, v| [k.to_sym, v] }]
+      options[:filename] = context.ref_node.alcn
+
       locals = {:context => context}
-      context.content = ::Haml::Engine.new(context.content, :filename => context.ref_node.alcn).
+      context.content = ::Haml::Engine.new(context.content, options).
         render(Webgen::ContentProcessor::Context.new(context), locals)
       context
     rescue LoadError

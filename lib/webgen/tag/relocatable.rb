@@ -19,7 +19,11 @@ module Webgen::Tag
       path = param('tag.relocatable.path')
       result = ''
       begin
-        result = (Webgen::Node.url(path, false).absolute? ? path : resolve_path(path, context))
+        if Webgen::Node.url(path, false, :hide_index => true).absolute?
+          result = path
+        else
+          result = resolve_path(path, context)
+        end
       rescue URI::InvalidURIError => e
         raise Webgen::RenderError.new("Error while parsing path '#{path}': #{e.message}",
                                       self.class.name, context.dest_node, context.ref_node)
@@ -37,7 +41,7 @@ module Webgen::Tag
       dest_node = context.ref_node.resolve(path, context.dest_node.lang)
       if dest_node
         context.dest_node.node_info[:used_meta_info_nodes] << dest_node.alcn
-        context.dest_node.route_to(dest_node)
+        context.dest_node.route_to(dest_node, :hide_index => true, :path => path)
       else
         log(:error) { "Could not resolve path '#{path}' in <#{context.ref_node}>" }
         context.dest_node.flag(:dirty)

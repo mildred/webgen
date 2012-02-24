@@ -225,12 +225,26 @@ module Webgen
     # Construct an internal URL for the given +name+ which can be an acn/alcn/path. If the parameter
     # +make_absolute+ is +true+, then a relative URL will be made absolute by prepending the special
     # URL <tt>webgen:://webgen.localhost/</tt>.
-    def self.url(name, make_absolute = true, absolute_prefix='webgen://webgen.localhost/')
+    def self.url(name, make_absolute = true, opts = {})
+      opts[:absolute_prefix] ||= 'webgen://webgen.localhost/'
       url = URI::parse(URI::escape(name, URL_UNSAFE_PATTERN))
-      url = URI::parse(absolute_prefix) + url unless url.absolute? || !make_absolute
+      url = URI::parse(opts[:absolute_prefix]) + url unless url.absolute? || !make_absolute
+      url.path = self.hide_index(url.path) if opts[:hide_index]
       url
     end
 
+    def self.hide_index(path)
+      config = Webgen::WebsiteAccess.website.config
+      return path unless config['website.index.hide']
+      index = "#{config['website.index.basename']}.#{config['website.index.ext']}"
+      if path == index
+        "./"
+      elsif path[-index.length-1, index.length+1] == "/#{index}"
+        path[0..-index.length-1]
+      else
+        path
+      end
+    end
 
     # Check if the this node is in the subtree which is spanned by +node+. The check is performed
     # using only the +parent+ information of the involved nodes, NOT the actual path/alcn values!
@@ -265,7 +279,8 @@ module Webgen
       orig_path = path
       url = self.class.url(@alcn) + self.class.url(path, false)
 
-      path = url.path + (url.fragment.nil? ? '' : '#' + url.fragment)
+      path = URI.escape(URI.unescape(url.path), /\#/)
+      path = path + (url.fragment.nil? ? '' : '#' + url.fragment)
       return nil if path =~ /^\/\.\./
 
       node = @tree[path, :alcn]
@@ -282,7 +297,7 @@ module Webgen
 
     # Return the relative path to the given path +other+. The parameter +other+ can be a Node or a
     # String.
-    def route_to(other)
+    def route_to(other, opts = {})
       my_url = self.class.url(@path)
       other_url = if other.kind_of?(Node)
                     self.class.url(other.routing_node(@lang).path)
@@ -297,7 +312,9 @@ module Webgen
         other_url.path = Pathname.new(other_url.path).cleanpath.to_s
       end
       route = my_url.route_to(other_url).to_s
-      (route == '' ? File.basename(self.path) : route)
+      result = (route == '' ? File.basename(self.path) : route)
+      result = self.class.hide_index(result) if opts[:hide_index]
+      result
     end
 
     # Return the routing node in language +lang+ which is the node that is used when routing to this

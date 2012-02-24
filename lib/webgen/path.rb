@@ -217,7 +217,7 @@ module Webgen
     end
 
     def index?
-      return basename == Webgen::WebsiteAccess.website.config['website.basename_index']
+      return basename == Webgen::WebsiteAccess.website.config['website.index.basename']
     end
 
     # Equality -- Return +true+ if +other+ is a Path object with the same #path or if +other+ is a

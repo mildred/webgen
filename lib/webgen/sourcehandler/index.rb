@@ -14,6 +14,7 @@ module Webgen::SourceHandler
     def create_node(path, opts = {})
 
       opts[:page] ||= page_from_path(path, "index")
+      path.meta_info.merge! opts[:meta] unless opts[:meta].nil?
 
       # check the config_index block
       block_name = path.meta_info['block_config_index'] || "config_index"

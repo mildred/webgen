@@ -95,7 +95,7 @@ module Webgen
           {}
         else
           begin
-            meta_info = YAML::load(mi_data.to_s)
+            meta_info = YAML::load(mi_data.to_s) || {}
             unless meta_info.kind_of?(Hash)
               raise FormatError, "Invalid structure of meta information block: expected YAML hash but found #{meta_info.class}"
             end
@@ -160,7 +160,7 @@ module Webgen
       block_name = meta_info["block_meta_#{meta_block_name}"] || "meta_#{meta_block_name}"
       meta = blocks[block_name]
       if meta
-        meta = YAML::load(meta.content)
+        meta = YAML::load(meta.content) || {}
         unless meta.kind_of?(Hash)
           raise FormatError, "Invalid structure of named meta information block (#{block_name}): expected YAML hash but found #{meta.class}"
         end

@@ -61,7 +61,7 @@ module Webgen::SourceHandler
         # Create index nodes in the tag directory
         t_path.set_path "#{path.path}#{tag}/index.index"
         nodes << website.blackboard.invoke(:create_nodes, t_path, index_source_handler) do |cn_path|
-          index_source_handler.create_node(cn_path, :nodes => tag_nodes)
+          index_source_handler.create_node(cn_path, :nodes => tag_nodes, :meta => {'tag' => tag})
         end
 
       end

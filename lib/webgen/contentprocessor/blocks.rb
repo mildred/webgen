@@ -45,7 +45,7 @@ module Webgen::ContentProcessor
         used_chain = (context[:chain].length > 1 ? context[:chain][1..-1] : context[:chain]).dup
       elsif options[:chain].kind_of?(Array)
         used_chain = options[:chain]
-        dest_node = context.content_node
+        options[:dest] ||= 'content'
       else
         paths = options[:chain].split(';')
         used_chain = paths.collect do |path|
@@ -58,7 +58,17 @@ module Webgen::ContentProcessor
           temp_node
         end.compact
         return '' if used_chain.length != paths.length
+        options[:dest] ||= 'content'
+      end
+
+      if options[:dest] == 'content'
         dest_node = context.content_node
+      elsif options[:dest] == 'dest'
+        dest_node = context.dest_node
+      elsif options[:dest] == 'ref'
+        dest_node = context.ref_node
+      elsif options[:dest].kind_of? Webgen::Node
+        dest_node = options[:dest]
       end
 
       if options[:node] == 'first'

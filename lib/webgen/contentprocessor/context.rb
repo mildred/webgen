@@ -50,6 +50,8 @@ module Webgen::ContentProcessor
       @context.node
     end
 
+    # See context/nodes.rb
+
     def content_node
       @context.content_node
     end
@@ -63,13 +65,13 @@ module Webgen::ContentProcessor
     end
 
     def block(name, attrs = {})
-      attrs[:name]     = name.to_s
-      unless attrs[:render].nil?
-        attrs[:chain] = [attrs[:render]] + @context[:chain][1..-1]
+      attrs[:name]  = name.to_s
+      attrs[:chain] = [attrs[:chain]] if attrs[:chain].kind_of?(Webgen::Node)
+      if attrs[:render]
+        attrs[:chain] = @context[:chain][1..-1] unless attrs[:chain]
+        attrs[:chain] = [attrs[:render]] + attrs[:chain]
       end
-      if attrs[:chain].kind_of?(Webgen::Node)
-        attrs[:chain] = [attrs[:chain]]
-      elsif attrs[:chain].kind_of?(Array)
+      if attrs[:chain].kind_of?(Array)
         attrs[:chain].map! do |item|
           if item.kind_of? String
             temp_node = @context.ref_node.resolve(item, @context.dest_node.lang)
@@ -86,6 +88,8 @@ module Webgen::ContentProcessor
       end
       attrs[:node]     = attrs[:node].to_s     unless attrs[:node].nil?
       attrs[:notfound] = attrs[:notfound].to_s unless attrs[:notfound].nil?
+      attrs[:dest]   ||= 'dest'
+      attrs[:dest]     = attrs[:dest].to_s
       block = Webgen::ContentProcessor::Blocks.new
       block.render_block(@context, attrs)
     end

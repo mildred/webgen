@@ -164,7 +164,7 @@ module Webgen
         unless meta.kind_of?(Hash)
           raise FormatError, "Invalid structure of named meta information block (#{block_name}): expected YAML hash but found #{meta.class}"
         end
-        @meta_info = meta.merge(meta_info)
+        @meta_info.merge! meta
       end
     rescue ArgumentError => e
       raise FormatError, "Invalid YAML syntax in named meta information block (#{block_name}): #{e.message}"

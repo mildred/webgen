@@ -32,6 +32,7 @@ module Webgen::SourceHandler
       sort_key       = cfg[:sort_key]
       page_basename  = cfg[:page_basename]
       page_start_at  = cfg[:page_start_at]
+      node_start_at  = cfg[:node_start_at]
       extension      = cfg[:extension]
 
       # Determine all sub nodes
@@ -60,10 +61,28 @@ module Webgen::SourceHandler
       # Determine nodes for the index and the different pages
       sub_nodes = {:asc => sub_nodes, :desc => sub_nodes.reverse}
       index_nodes = sub_nodes[index_order][0, index_size]
+      if index_order == :desc
+        index_nodes_last  = sub_nodes[index_order].length - 1
+        index_nodes_first = index_nodes_last - index_nodes.length + 1
+      else
+        index_nodes_first = 0
+        index_nodes_last  = index_nodes.length - 1
+      end
       pages_nodes = sub_nodes[archive_order].dup
       pages = []
+      pages_first = 0
+      pages_last  = pages_nodes.length - 1
       until pages_nodes.empty?
-        pages << pages_nodes.slice!(0, archive_size)
+        pages_sub = pages_nodes.slice!(0, archive_size)
+        pages << {:nodes => pages_sub,
+                  :first => if archive_order == :asc
+                              then pages_first
+                              else pages_last - pages_sub.length + 1 end,
+                  :last  => if archive_order == :asc
+                              then pages_first + pages_sub.length - 1
+                              else pages_last end}
+        pages_first += pages_sub.length
+        pages_last  -= pages_sub.length
       end
 
       # Construct feeds
@@ -90,32 +109,48 @@ module Webgen::SourceHandler
 
       # Create index node
       path.ext = extension
-      nodes << super(path, :parent => parent) do |node|
+      nodes_index = super(path, :parent => parent) do |node|
         node.node_info[:config]    = cfg
         node.node_info[:data]      = data
         node.node_info[:sub_nodes] = index_nodes
         node.node_info[:page]      = opts[:page]
+        node.node_info[:num_pages] = pages.length
+        node.node_info[:first_node_index] = node_start_at + index_nodes_first
+        node.node_info[:last_node_index]  = node_start_at + index_nodes_last
         node.node_info.merge! feeds
       end
+      
 
       # Create page nodes
       parent_path = path.parent_path
+      nodes_pages = []
       pages.each_index do |i|
         basename = page_basename % (page_start_at + i)
         path.basename = basename
         path.ext = extension
         path.meta_info[:page] = page_start_at + i
         outpath = output_path(parent, path)
-        nodes << super(path, :parent => parent, :output_path => outpath) do |node|
+        nodes_pages[i] = super(path, :parent => parent, :output_path => outpath) do |node|
+          node.node_info[:page]      = opts[:page]
           node.node_info[:config]    = cfg
           node.node_info[:data]      = data
           node.node_info[:page_num]  = page_start_at + i
-          node.node_info[:sub_nodes] = pages[i]
-          node.node_info[:page]      = opts[:page]
+          node.node_info[:num_pages] = pages.length
+          node.node_info[:sub_nodes] = pages[i][:nodes]
+          node.node_info[:first_node_index] = node_start_at + pages[i][:first]
+          node.node_info[:last_node_index]  = node_start_at + pages[i][:last]
           node.node_info.merge! feeds
         end
       end
+      
+      [nodes_index, nodes_pages].flatten.each do |node|
+        node.node_info[:index_latest] = nodes_index
+        node.node_info[:index_pages]  = (0..pages.length - 1).map do |i|
+          nodes_pages[i]
+        end
+      end
 
+      nodes << nodes_index << nodes_pages
       nodes
     end
 
@@ -153,6 +188,7 @@ module Webgen::SourceHandler
       cfg[:sort_key]       = data['sort_key']         || 'created_at'
       cfg[:page_basename]  = data['page_basename']    || 'page_%d'
       cfg[:page_start_at]  = data['page_start_at']    || 1
+      cfg[:node_start_at]  = data['node_start_at']    || 1
       cfg[:extension]      = data['extension']        || 'html'
       cfg[:atom]           = data['feed.atom']        || 'atom.xml'
       cfg[:rss]            = data['feed.rss']         || 'rss.xml'

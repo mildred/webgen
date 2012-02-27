@@ -18,14 +18,14 @@ module Webgen::ContentProcessor
     end
 
     def html_link(path)
-      path = path.path if path.kind_of? Webgen::Node
+      path = path.alcn if path.kind_of? Webgen::Node
       tag = Webgen::Tag::Link.new
       tag.set_params 'tag.link.path' => path
       tag.call(nil, nil, @context)
     end
   
     def link_relative(path)
-      path = path.path if path.kind_of? Webgen::Node
+      path = path.alcn if path.kind_of? Webgen::Node
       tag = Webgen::Tag::Relocatable.new
       tag.set_params 'tag.relocatable.path' => path
       res = tag.call(nil, nil, @context)

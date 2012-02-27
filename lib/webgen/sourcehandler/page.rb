@@ -15,12 +15,15 @@ module Webgen::SourceHandler
     # Create a page file from +path+.
     def create_node(path)
       page = page_from_path(path)
-      path.meta_info['lang'] ||= website.config['website.lang']
+      path.meta_info['lang']    ||= website.config['website.lang']
+      path.meta_info['publish'] ||= true
       path.ext = 'html' if path.ext == 'page'
 
-      super(path) do |node|
-        node.node_info[:sh_page_node_mi] = Webgen::Page.meta_info_from_data(path.io.data)
-        node.node_info[:page] = page
+      if path.meta_info['publish']
+        super(path) do |node|
+          node.node_info[:sh_page_node_mi] = Webgen::Page.meta_info_from_data(path.io.data)
+          node.node_info[:page] = page
+        end
       end
     end
 

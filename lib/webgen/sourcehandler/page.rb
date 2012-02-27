@@ -15,8 +15,8 @@ module Webgen::SourceHandler
     # Create a page file from +path+.
     def create_node(path)
       page = page_from_path(path)
-      path.meta_info['lang']    ||= website.config['website.lang']
-      path.meta_info['publish'] ||= true
+      path.meta_info['lang']  ||= website.config['website.lang']
+      path.meta_info['publish'] = true if path.meta_info['publish'].nil?
       path.ext = 'html' if path.ext == 'page'
 
       if path.meta_info['publish']

@@ -27,7 +27,8 @@ module Webgen::SourceHandler
 
       if path.meta_info['sub_nodes']
         path.meta_info['sub_nodes'].each do |e|
-          raise Exception.new "Missing node_info[:page] from entry #{e.inspect} for feed" unless e.node_info[:page]
+          raise Exception.new "Missing node_info[:page] from entry #{e.inspect} for feed  #{path}" unless e.node_info[:page]
+          raise Exception.new "Missing content block from entry #{e.inspect} for feed #{path}" if e.node_info[:page].blocks[path.meta_info['content_block_name'] || 'content'].nil?
         end
       end
 

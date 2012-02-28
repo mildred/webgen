@@ -17,16 +17,22 @@ module Webgen::SourceHandler
       tags = {}
 
       kind_attribute = data['kind_attribute']   || 'kind'
-      tag_attributes = data['tag_attributes']   || ['tag', 'tags']
+      tag_attributes = data['tag_attributes']   || ['tags']
       act_on         = [data['act_on']]         || []
       act_on         = act_on.flatten.delete_if(&:nil?)
       act_on_all     = data['act_on_all']       || act_on.empty?
       children_only  = data['children_only']    || false
+      
+      data['exclude_processors'] =
+        [data['exclude_processors']].flatten || ["Webgen::SourceHandler::Tags"]
+      data['exclude_processors'] = nil if data['exclude_processors'] == '~'
 
       parent = parent_node(path)
       parent.tree.node_access[:alcn].values.each do |n|
         next if children_only and not n.in_subtree_of?(parent)
         next unless act_on_all or act_on.include?(n[kind_attribute])
+        next if data['exclude_processors'].include? n.node_info[:processor]
+        next unless n['tag'].nil? # avoid recursivity
         tag_attributes.map { |a| n[a] }.delete_if(&:nil?).flatten.each do |tag|
           tags[tag] = [] unless tags.has_key? tag
           tags[tag] << n

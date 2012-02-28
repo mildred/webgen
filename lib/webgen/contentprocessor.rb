@@ -80,7 +80,7 @@ module Webgen
     autoload :Xmllint, 'webgen/contentprocessor/xmllint'
     autoload :Kramdown, 'webgen/contentprocessor/kramdown'
     autoload :Less, 'webgen/contentprocessor/less'
-    autoload :Context, 'webgen/contentprocessor/context'
+    autoload :Environment, 'webgen/contentprocessor/environment'
 
     # Return the list of all available content processors.
     def self.list

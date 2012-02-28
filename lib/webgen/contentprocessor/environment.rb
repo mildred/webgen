@@ -1,6 +1,6 @@
 module Webgen::ContentProcessor
 
-  class Context
+  class Environment
     attr_reader :context
       
     def initialize(context, opts = {})

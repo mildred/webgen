@@ -13,7 +13,7 @@ module Webgen::ContentProcessor
 
       erb = ERB.new(context.content)
       erb.filename = context.ref_node.alcn
-      context.content = erb.result(Webgen::ContentProcessor::Context.new(context).get_erb_binding)
+      context.content = erb.result(Webgen::ContentProcessor::Environment.new(context).get_erb_binding)
       #context.content = erb.result(binding)
       context
     rescue Exception => e

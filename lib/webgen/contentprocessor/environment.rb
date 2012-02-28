@@ -63,8 +63,12 @@ module Webgen::ContentProcessor
     def dest_node
       @context.dest_node
     end
+    
+    def has_block?(name)
+      block(name, :return_if_block_exists => true)
+    end
 
-    def block(name, attrs = {})
+    def block(name, attrs = {}, &proc)
       attrs[:name]  = name.to_s
       attrs[:chain] = [attrs[:chain]] if attrs[:chain].kind_of?(Webgen::Node)
       if attrs[:render]
@@ -90,8 +94,20 @@ module Webgen::ContentProcessor
       attrs[:notfound] = attrs[:notfound].to_s unless attrs[:notfound].nil?
       attrs[:dest]   ||= 'dest'
       attrs[:dest]     = attrs[:dest].to_s
+      if proc
+        notfound = attrs[:notfound]
+        attrs[:notfound] = 'nil'
+      end
       block = Webgen::ContentProcessor::Blocks.new
-      block.render_block(@context, attrs)
+      result = block.render_block(@context, attrs)
+      if proc
+        if result.nil?
+          result = ''
+        else
+          proc.call(result)
+        end
+      end
+      result
     end
 
   end

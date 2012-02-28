@@ -79,8 +79,12 @@ module Webgen::ContentProcessor
       block_node = used_chain.first
 
       if !block_node || !block_node.node_info[:page] || !block_node.node_info[:page].blocks.has_key?(options[:name])
-        if options[:notfound] == 'ignore'
+        if options[:return_if_block_exists]
+          return false
+        elsif options[:notfound].to_s == 'ignore'
           return ''
+        elsif options[:notfound].to_s == 'nil'
+          return nil
         elsif block_node
           raise Webgen::RenderError.new("No block named '#{options[:name]}' found in <#{block_node}>",
                                         self.class.name, context.dest_node,
@@ -90,6 +94,8 @@ module Webgen::ContentProcessor
                                         self.class.name, context.dest_node,
                                         context.ref_node, (options[:line_nr_proc].call if options[:line_nr_proc]))
         end
+      elsif options[:return_if_block_exists]
+        return true
       end
 
       context.dest_node.node_info[:used_nodes] << block_node.alcn

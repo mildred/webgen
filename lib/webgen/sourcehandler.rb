@@ -88,25 +88,38 @@ module Webgen
 
       # Update the <tt>website.tree</tt> by creating/reinitializing all needed nodes.
       def update_tree
-        unused_paths = Set.new
-        referenced_nodes = Set.new
+        # * A node is passive if it comes from a passive source.
+        # * A node is referenced if a non passive node have it in its
+        #   node_info[:used_nodes] or node_info[:used_meta_info_nodes].
+        #
+        unused_paths = Set.new     # ???
+        referenced_nodes = Set.new # [Append] Nodes referenced fom non passive nodes
         all_but_passive_paths = Set.new(find_all_source_paths.select {|name, path| !path.passive?}.collect {|name, path| name})
         num_pass = 0
-        used_paths_before = nil
+        last_paths = nil
         begin
-          used_paths = all_but_passive_paths - unused_paths
-          paths_to_use = Set.new
-          nodes_to_delete = Set.new
-          passive_nodes = Set.new
+          current_paths = all_but_passive_paths - unused_paths
+          paths_to_use = Set.new    # [Append] nodes that must be recreated
+          nodes_to_delete = Set.new # [Append] nodes to delete
+          passive_nodes = Set.new   # [Append] passive nodes
+
+          # - Read the current website tree and remove the paths in it from
+          #   current_paths.
+          # - Determine nodes_to_delete, passive_nodes and referenced_nodes to
+          #   delete unused nodes
+          # - Add paths that needs to be recreated to paths_to_use so they are
+          #   re-added later on in current_paths
+          # - Catch errors
 
           website.tree.node_access[:alcn].each do |alcn, node|
             next if node == website.tree.dummy_root
 
             begin
-              used_paths.delete(node.node_info[:src])
+              current_paths.delete(node.node_info[:src])
 
               src_path = find_all_source_paths[node.node_info[:src]]
               if !src_path
+                # delete nodes that don't have a source file anymore
                 nodes_to_delete << node
               elsif (!node.flagged?(:created) && src_path.changed?) || node.meta_info_changed?
                 node.flag(:reinit)
@@ -128,26 +141,52 @@ module Webgen
             end
           end
 
-          # add unused passive nodes to node_to_delete set
-          unreferenced_passive_nodes, other_passive_nodes = passive_nodes.partition do |pnode|
+          # Remove Nodes
+          # ------------
+          # inputs: passive_nodes, referenced_nodes, nodes_to_delete
+
+          # Split passive nodes into the referenced passive nodes, and the
+          # unreferenced ones. Mark for deletition unreferenced_passive_nodes
+          # unless they are (recursive) dependencies of referenced_passive_nodes
+          # Then delete nodes_to_delete
+
+          unreferenced_passive_nodes, referenced_passive_nodes = passive_nodes.partition do |pnode|
             !referenced_nodes.include?(pnode.alcn)
           end
-          refs = other_passive_nodes.collect {|n| (n.node_info[:used_meta_info_nodes] + n.node_info[:used_nodes]).to_a}.flatten
+          refs = referenced_passive_nodes.collect {|n| (n.node_info[:used_meta_info_nodes] + n.node_info[:used_nodes]).to_a}.flatten
           unreferenced_passive_nodes.each {|n| nodes_to_delete << n if !refs.include?(n.alcn)}
 
           nodes_to_delete.each {|node| website.tree.delete_node(node)}
-          used_paths.merge(paths_to_use)
-          paths = create_nodes_from_paths(used_paths).collect {|n| n.node_info[:src]}
-          unused_paths.merge(used_paths - paths)
+
+          # Create Nodes
+          # ------------
+          # input: paths_to_use, current_paths (merged together)
+          # output: paths (the nodes just created)
+
+          current_paths.merge(paths_to_use)
+          paths = create_nodes_from_paths(current_paths).collect {|n| n.node_info[:src]}
+
+          # Cleanup
+          # -------
+          # input: current_paths, paths
+          # output: unused_paths (nodes that don't have output ???)
+
+          # Update unused_paths, delete nodes flagged as :reinit and that should
+          # have been created right now and reset volatile cache.
+
+          unused_paths.merge(current_paths - paths)
           website.tree.node_access[:alcn].each {|name, node| website.tree.delete_node(node) if node.flagged?(:reinit)}
           website.cache.reset_volatile_cache
+
+          # Check infinite loops
+          # --------------------
+
           num_pass += 1
-          if num_pass >= 1000 or used_paths_before == used_paths
+          if num_pass >= 1000 or last_paths == current_paths
             raise Exception.new("Non enging loop detected after #{num_pass} iterations.\nPaths still in use: #{used_paths.map(&:to_s).join ", "}")
           end
-          used_paths_before = used_paths
-          #puts "Re-updating because of #{used_paths.map(&:to_s).join ", "}"
-        end until used_paths.empty?
+          last_paths = current_paths
+        end until current_paths.empty?
       end
 
       # Write out all changed nodes of the <tt>website.tree</tt>.

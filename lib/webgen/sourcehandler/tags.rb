@@ -60,15 +60,21 @@ module Webgen::SourceHandler
         # Create a directory per tag
         t_path = path.dup
         t_path.set_path "#{path.path}#{tag}/"
-        nodes << website.blackboard.invoke(:create_nodes, t_path, dir_handler) do |cn_path|
+        nodes_for_tag = website.blackboard.invoke(:create_nodes, t_path, dir_handler) do |cn_path|
           dir_handler.create_node(cn_path)
         end
 
         # Create index nodes in the tag directory
         t_path.set_path "#{path.path}#{tag}/index.index"
-        nodes << website.blackboard.invoke(:create_nodes, t_path, index_source_handler) do |cn_path|
+        nodes_for_tag << website.blackboard.invoke(:create_nodes, t_path, index_source_handler) do |cn_path|
           index_source_handler.create_node(cn_path, :nodes => tag_nodes, :meta => {'tag' => tag})
         end
+
+        nodes_for_tag.flatten!
+        nodes_for_tag.each do |node|
+          node.node_info[:used_meta_info_nodes] << tag_nodes.map(&:alcn)
+        end
+        nodes << nodes_for_tag
 
       end
 

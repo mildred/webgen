@@ -117,6 +117,7 @@ module Webgen::SourceHandler
         node.node_info[:num_pages] = pages.length
         node.node_info[:first_node_index] = node_start_at + index_nodes_first
         node.node_info[:last_node_index]  = node_start_at + index_nodes_last
+          node.node_info[:used_nodes] << index_nodes.map(&:alcn)
         node.node_info.merge! feeds
       end
       
@@ -139,18 +140,22 @@ module Webgen::SourceHandler
           node.node_info[:sub_nodes] = pages[i][:nodes]
           node.node_info[:first_node_index] = node_start_at + pages[i][:first]
           node.node_info[:last_node_index]  = node_start_at + pages[i][:last]
+          node.node_info[:used_nodes] << pages[i][:nodes].map(&:alcn)
           node.node_info.merge! feeds
         end
       end
+
+      nodes << nodes_index << nodes_pages
+      nodes.flatten!
       
       [nodes_index, nodes_pages].flatten.each do |node|
         node.node_info[:index_latest] = nodes_index
         node.node_info[:index_pages]  = (0..pages.length - 1).map do |i|
           nodes_pages[i]
         end
+        node.node_info[:used_meta_info_nodes] << nodes.map(&:alcn)
       end
 
-      nodes << nodes_index << nodes_pages
       nodes
     end
 

@@ -183,7 +183,7 @@ module Webgen
 
           num_pass += 1
           if num_pass >= 1000 or last_paths == current_paths
-            raise Exception.new("Non enging loop detected after #{num_pass} iterations.\nPaths still in use: #{used_paths.map(&:to_s).join ", "}")
+            raise Exception.new("Non enging loop detected after #{num_pass} iterations.\nPaths still in use: #{current_paths.map(&:to_s).join ", "}")
           end
           last_paths = current_paths
         end until current_paths.empty?

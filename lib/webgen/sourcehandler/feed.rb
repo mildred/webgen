@@ -88,6 +88,8 @@ module Webgen::SourceHandler
     # Return the content of an +entry+ of the feed +node+.
     def entry_content(node, entry)
       entry.node_info[:page].blocks[node['content_block_name'] || 'content'].render(Webgen::Context.new(:chain => [entry])).content
+    rescue
+      nil
     end
 
     #######

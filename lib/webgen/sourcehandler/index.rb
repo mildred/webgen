@@ -9,6 +9,10 @@ module Webgen::SourceHandler
     include Webgen::WebsiteAccess
     include Base
 
+    def initialize # :nodoc:
+      website.blackboard.add_listener(:node_meta_info_changed?, method(:node_meta_info_changed?))
+    end
+
     # Create the node for +path+. If the +path+ has the name of a content processor as the first
     # part in the extension, it is preprocessed.
     def create_node(path, opts = {})
@@ -156,6 +160,7 @@ module Webgen::SourceHandler
         node.node_info[:used_meta_info_nodes] << nodes.map(&:alcn)
       end
 
+      @@known_nodes << nodes
       nodes
     end
 
@@ -206,6 +211,16 @@ module Webgen::SourceHandler
       cfg[:rss]            = nil if cfg[:rss] == "~"
 
       cfg
+    end
+
+    @@known_nodes = Set.new
+
+    # Check if the +node+ is index and then flag it as dirty.
+    def node_meta_info_changed?(node)
+      return if node.node_info[:processor] != self.class.name
+      return if @@known_nodes.include?(node) # unless the node comes from the cache
+      @@known_nodes << node
+      node.flag(:dirty_meta_info)
     end
 
   end

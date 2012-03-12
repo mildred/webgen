@@ -30,6 +30,7 @@ require 'webgen/output'
 require 'webgen/sourcehandler'
 require 'webgen/contentprocessor'
 require 'webgen/tag'
+require 'webgen/extension'
 
 # Load other needed files
 require 'webgen/path'
@@ -256,6 +257,7 @@ module Webgen
         load 'webgen/default_config.rb'
         Dir.glob(File.join(@directory, 'ext', '**/init.rb')) {|f| load(f)}
         read_config_file
+        initialize_extensions
 
         @config_block.call(@config) if @config_block
         restore_tree_and_cache
@@ -368,6 +370,12 @@ module Webgen
         end
       elsif File.exists?(File.join(@directory, 'config.yml'))
         log(:warn) { "No configuration file called config.yaml found (there is a config.yml - spelling error?)" }
+      end
+    end
+
+    def initialize_extensions
+      @config['extensions'].each do |ext, ext_cfg|
+        Extension.const_get(ext).new(self, ext_cfg).execute
       end
     end
 

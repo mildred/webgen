@@ -256,5 +256,7 @@ config.common.sitemap.honor_in_menu(false, :doc => 'Only include pages that are 
 config.common.sitemap.any_lang(false, :doc => 'Use nodes in any language if true')
 config.common.sitemap.used_kinds(['page'], :doc => 'Array of node kinds that is used for the sitemap')
 
+config.extensions({}, :doc => "extensions configuration")
+
 config.config({}, :doc => "Custom configuration")
 

@@ -52,7 +52,7 @@ config.passive_sources([['/', "Webgen::Source::Resource", "webgen-passive-source
 
 # All things regarding source handler
 config.sourcehandler.patterns({
-                                'Webgen::SourceHandler::Copy' => ['**/*.css', '**/*.js', '**/*.html', '**/*.gif', '**/*.jpg', '**/*.png', '**/*.ico'],
+                                'Webgen::SourceHandler::Copy' => ['**/*.css', '**/*.js', '**/*.html', '**/*.gif', '**/*.jpg', '**/*.png', '**/*.ico', '**/*.blob'],
                                 'Webgen::SourceHandler::Directory' => ['**/'],
                                 'Webgen::SourceHandler::Metainfo' => ['**/metainfo', '**/*.metainfo'],
                                 'Webgen::SourceHandler::Tags' => ['**/*.tags'],
